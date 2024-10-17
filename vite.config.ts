@@ -9,6 +9,7 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'esnext',
     outDir: 'dist',
+    sourcemap: true,
     rollupOptions: {
       input: {
         store: path.resolve(__dirname, 'libs/store/index.ts'),
@@ -19,7 +20,6 @@ export default defineConfig({
         dir: 'dist',
         format: 'esm',
         entryFileNames: '[name]/index.mjs',
-        sourcemap: true,
       },
     },
     lib: {

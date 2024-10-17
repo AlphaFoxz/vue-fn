@@ -14,5 +14,8 @@
   "repository": "https://github.com/AlphaFoxz/vue-fun",
   "peerDependencies": {
     "vue": ">=3.5.0"
+  },
+  "dependencies": {
+    "@vue/reactivity": "^3.5.12"
   }
 }

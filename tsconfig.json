@@ -20,11 +20,6 @@
     "types": [
       "node"
     ],
-    "paths": {
-      "@/*": [
-        "./libs/*"
-      ],
-    }
   },
   "references": [
     {
