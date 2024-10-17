@@ -1,0 +1,34 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "include": [
+    "libs/**/*",
+    "dist/*",
+    "dist/**/*",
+    "scripts/*",
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "lib": [
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./libs/*"
+      ],
+    }
+  },
+  "references": [
+    {
+      "path": "./tsconfig.build.json"
+    },
+  ]
+}

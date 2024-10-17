@@ -1,0 +1,31 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "include": [
+    "libs/*",
+    "libs/**/*",
+  ],
+  "exclude": [
+    "**/__test__",
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationDir": "dist",
+    "lib": [
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./libs/*"
+      ],
+    }
+  }
+}
