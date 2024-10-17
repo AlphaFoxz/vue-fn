@@ -1,8 +1,8 @@
-import { type Ref, ref } from '@vue/reactivity'
+import { type ShallowRef, shallowRef } from '@vue/reactivity'
 
 export interface TimeoutApi {
-  resolve: Ref<() => void>
-  reject: Ref<(error: Error) => void>
+  resolve: ShallowRef<() => void>
+  reject: ShallowRef<(error: Error) => void>
   reset: (ms?: number) => void
   promise: Promise<void>
   // Add other properties as needed
@@ -10,7 +10,7 @@ export interface TimeoutApi {
 
 export function createTimeout(timeoutMs: number, timeoutError = new Error('timeout!')): TimeoutApi {
   let timeout: undefined | null | ReturnType<typeof setTimeout> = undefined
-  let resolve = ref(() => {
+  let resolve = shallowRef(() => {
     if (!timeout) {
       timeout = null
       return
@@ -18,7 +18,7 @@ export function createTimeout(timeoutMs: number, timeoutError = new Error('timeo
     clearTimeout(timeout!)
     timeout = null
   })
-  let reject = ref((_: Error) => {})
+  let reject = shallowRef((_: Error) => {})
   const reset = (ms: number = timeoutMs) => {
     if (!timeout) {
       return
