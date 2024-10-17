@@ -1,24 +1,12 @@
 {
-  "name": "vue-fun",
+  "name": "vue-fn",
   "version": "0.0.1-alpha.0",
   "type": "module",
   "sideEffects": false,
   "files": [
     "dist"
   ],
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "description": "",
   "private": true,
-  "keywords": [
-    "vue"
-  ],
-  "author": {
-    "name": "AlphaFoxz",
-    "url": "https://github.com/AlphaFoxz"
-  },
-  "license": "UNLICENSED",
-  "repository": "https://github.com/ddd-tool/vue-ext",
   "scripts": {
     "build": "pnpm build:pack && pnpm build:check && pnpm test && pnpm build:sync",
     "build:pack": "vite build && node scripts/gen-package-info.mjs",
