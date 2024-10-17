@@ -1,5 +1,8 @@
 import path from 'node:path'
+import fs from 'node:fs'
 import { defineConfig } from 'vite'
+
+const modules = fs.readdirSync(path.join(__dirname, 'libs'))
 
 export default defineConfig({
   esbuild: {
@@ -11,10 +14,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
-      input: {
-        store: path.resolve(__dirname, 'libs/store/index.ts'),
-        timer: path.resolve(__dirname, 'libs/timer/index.ts'),
-      },
+      input: parseModules(),
       output: {
         minifyInternalExports: true,
         dir: 'dist',
@@ -28,3 +28,14 @@ export default defineConfig({
     },
   },
 })
+
+function parseModules() {
+  return modules.reduce((acc, name) => {
+    const moduleDir = path.join(__dirname, 'libs', name)
+    if (!fs.statSync(moduleDir).isDirectory()) {
+      throw new Error(`libs/${moduleDir} is not a directory`)
+    }
+    acc[name] = path.resolve(moduleDir, 'index.ts')
+    return acc
+  }, {} as Record<string, string>)
+}
