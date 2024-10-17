@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { createTimeout } from '../'
+import { createTimeout } from '..'
 
 describe('test funUtil', () => {
   it('test createTimeout1', async () => {
