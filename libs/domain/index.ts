@@ -1,16 +1,39 @@
-import { type Ref, DeepReadonly, readonly, shallowReactive, shallowReadonly, WatchHandle } from '@vue/reactivity'
+import {
+  type Ref,
+  DeepReadonly,
+  Reactive,
+  readonly,
+  shallowReactive,
+  shallowReadonly,
+  ShallowRef,
+  WatchHandle,
+} from '@vue/reactivity'
 
-export type ReadonlyStates<T> = {
-  readonly [P in keyof T]: T[P] extends Ref
-    ? DeepReadonly<Ref<T[P]['value']>>
-    : T[P] extends object
-    ? ReadonlyStates<T[P]>
-    : Readonly<T[P]>
+export type ReadonlyStates<STATES> = {
+  readonly [K in keyof STATES]: STATES[K] extends Ref
+    ? DeepReadonly<Ref<STATES[K]['value']>>
+    : STATES[K] extends object
+    ? ReadonlyStates<STATES[K]>
+    : Readonly<STATES[K]>
 }
 
-export type ReadonlyActions<T> = {
-  readonly [P in keyof T]: T[P] extends Function ? T[P] : never
+export type ReadonlyActions<ACTIONS> = {
+  readonly [K in keyof ACTIONS]: ACTIONS[K] extends Function ? ACTIONS[K] : never
 }
+
+type UniqueArray<T> = T extends readonly [infer X, ...infer Rest]
+  ? InArray<Rest, X> extends true
+    ? ['Encountered value with duplicates:', X]
+    : readonly [X, ...UniqueArray<Rest>]
+  : T
+
+type InArray<T, X> = T extends readonly [X, ...infer _Rest]
+  ? true
+  : T extends readonly [X]
+  ? true
+  : T extends readonly [infer _, ...infer Rest]
+  ? InArray<Rest, X>
+  : false
 
 export type Api<STATES, ACTIONS, DESTORY> = Readonly<{
   states: ReadonlyStates<STATES>
@@ -74,15 +97,16 @@ function createApiContent<
   }
 }
 
-export type Store<STATES, ACTIONS, DESTORY> = {
+export type Agg<STATES, ACTIONS, DESTORY> = {
   readonly api: Api<STATES, ACTIONS, DESTORY>
 }
 
-export type SingletonStore<STATES, ACTIONS> = {
+export type SingletonAgg<STATES, ACTIONS, TRIGGERS> = {
   readonly api: SingletonApi<STATES, ACTIONS>
+  triggers: TRIGGERS
 }
 
-export function createStore<
+export function createAgg<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
   DESTORY extends Function
@@ -96,7 +120,7 @@ export function createStore<
     actions?: ACTIONS
     destory?: DESTORY
   }
-): Store<STATES, ACTIONS, DESTORY> {
+): Agg<STATES, ACTIONS, DESTORY> {
   const watchHandles: WatchHandle[] = shallowReactive([])
   function defineEffect<T extends WatchHandle>(t: T): T {
     watchHandles.push(t)
@@ -127,16 +151,20 @@ export function createStore<
   }
 }
 
-export function createSingletonStore<STATES extends { [k: string]: object }, ACTIONS extends { [k: string]: Function }>(
-  init: () => { states?: STATES; actions?: ACTIONS }
-): SingletonStore<STATES, ACTIONS> {
+export function createSingletonAgg<
+  STATES extends { [k: string]: object },
+  ACTIONS extends { [k: string]: Function },
+  TRIGGERS extends { [k: string]: ShallowRef<object> }
+>(init: () => { states?: STATES; actions?: ACTIONS; triggers?: TRIGGERS }): SingletonAgg<STATES, ACTIONS, TRIGGERS> {
   const result = init()
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
+  const triggers = (result.triggers || {}) as TRIGGERS
   return {
     api: createSingletonApi({
       states,
       actions,
     }),
+    triggers,
   }
 }

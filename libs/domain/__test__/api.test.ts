@@ -1,4 +1,4 @@
-import { ref, isReadonly, reactive, watch, onWatcherCleanup } from '@vue/reactivity'
+import { ref, isReadonly, reactive, watch, onWatcherCleanup, computed } from '@vue/reactivity'
 import { expect, it } from '@jest/globals'
 import { createApi, createSingletonApi } from '..'
 
@@ -6,11 +6,13 @@ it('createSingletonApi 属性只读', () => {
   const a = ref('a')
   const b = reactive({ b1: 'b1', b2: () => {} })
   const c = ref({ c1: ref('c1') })
+  const d = computed(() => 'd1')
   const api = createSingletonApi({
     states: {
       a,
       b,
       c,
+      d,
     },
     actions: {
       setA(s: string) {
@@ -23,6 +25,7 @@ it('createSingletonApi 属性只读', () => {
   expect(isReadonly(api.states.b)).toBe(true)
   expect(isReadonly(api.states.c.value)).toBe(true)
   expect(api.states.c.value.c1).toBe('c1')
+  expect(api.states.d.value).toBe('d1')
 
   expect(isReadonly(api.actions)).toBe(true)
   expect(api.states.a.value).toBe('a')
