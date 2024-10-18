@@ -2,14 +2,14 @@ import { type ShallowRef, shallowRef } from '@vue/reactivity'
 
 export interface TimeoutApi {
   resolve: ShallowRef<() => void>
-  reject: ShallowRef<(error: Error) => void>
   reset: (ms?: number) => void
+  isTimeout: ShallowRef<boolean>
   promise: Promise<void>
-  // Add other properties as needed
 }
 
-export function createTimeout(timeoutMs: number, timeoutError = new Error('timeout!')): TimeoutApi {
+export function createTimeout(timeoutMs: number, onTimeout: Error | (() => void) = new Error('timeout!')): TimeoutApi {
   let timeout: undefined | null | ReturnType<typeof setTimeout> = undefined
+  const isTimeout = shallowRef(false)
   let resolve = shallowRef(() => {
     if (!timeout) {
       timeout = null
@@ -18,14 +18,21 @@ export function createTimeout(timeoutMs: number, timeoutError = new Error('timeo
     clearTimeout(timeout!)
     timeout = null
   })
-  let reject = shallowRef((_: Error) => {})
+  let reject = shallowRef((e: Error | (() => void)) => {
+    isTimeout.value = true
+    if (e instanceof Error) {
+      throw e
+    } else {
+      e()
+    }
+  })
   const reset = (ms: number = timeoutMs) => {
     if (!timeout) {
       return
     }
     clearTimeout(timeout)
     timeout = setTimeout(() => {
-      reject.value(timeoutError)
+      reject.value(onTimeout)
     }, ms)
     timeoutMs = ms
   }
@@ -35,22 +42,28 @@ export function createTimeout(timeoutMs: number, timeoutError = new Error('timeo
       return
     }
     timeout = setTimeout(() => {
-      innerReject(timeoutError)
+      reject.value(onTimeout)
     }, timeoutMs)
     resolve.value = () => {
       innerResolve()
       clearTimeout(timeout!)
       timeout = null
     }
-    reject.value = () => {
-      innerReject(timeoutError)
+    reject.value = (e: Error | (() => void)) => {
+      isTimeout.value = true
+      if (e instanceof Error) {
+        innerReject(e)
+      } else {
+        e()
+        innerResolve()
+      }
     }
   })
   const api: TimeoutApi = {
     resolve,
-    reject,
     reset,
     promise,
+    isTimeout,
   }
   return api
 }

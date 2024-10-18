@@ -1,4 +1,4 @@
-import { type Ref, DeepReadonly, readonly, shallowReadonly, WatchHandle } from '@vue/reactivity'
+import { type Ref, DeepReadonly, readonly, shallowReactive, shallowReadonly, WatchHandle } from '@vue/reactivity'
 
 export type ReadonlyStates<T> = {
   readonly [P in keyof T]: T[P] extends Ref
@@ -12,127 +12,131 @@ export type ReadonlyActions<T> = {
   readonly [P in keyof T]: T[P] extends Function ? T[P] : never
 }
 
-export type Api<STATE, ACTION> = Readonly<{
-  state: ReadonlyStates<STATE>
-  action: ReadonlyActions<ACTION>
-  destory: () => void
+export type Api<STATES, ACTIONS, DESTORY> = Readonly<{
+  states: ReadonlyStates<STATES>
+  actions: ReadonlyActions<ACTIONS>
+  destory: DESTORY
 }>
 
-export type SingletonApi<STATE, ACTION> = Readonly<{
-  state: ReadonlyStates<STATE>
-  action: ReadonlyActions<ACTION>
+export type SingletonApi<STATES, ACTIONS> = Readonly<{
+  states: ReadonlyStates<STATES>
+  actions: ReadonlyActions<ACTIONS>
 }>
 
-export function createApi<STATES extends { [k: string]: object }, ACTIONS extends { [k: string]: Function }>(option: {
-  state?: STATES
-  action?: ACTIONS
-  destory?: () => void
-}): Api<STATES, ACTIONS> {
+export function createApi<
+  STATES extends { [k: string]: object },
+  ACTIONS extends { [k: string]: Function },
+  DESTORY extends Function
+>(option: { states?: STATES; actions?: ACTIONS; destory?: DESTORY }): Api<STATES, ACTIONS, DESTORY> {
   return shallowReadonly(createApiContent(option))
 }
 
 export function createSingletonApi<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function }
->(option: { state?: STATES; action?: ACTIONS }): SingletonApi<STATES, ACTIONS> {
+>(option: { states?: STATES; actions?: ACTIONS }): SingletonApi<STATES, ACTIONS> {
   const apiContent = createApiContent(option)
   return shallowReadonly({
-    state: apiContent.state,
-    action: apiContent.action,
+    states: apiContent.states,
+    actions: apiContent.actions,
   })
 }
 
-function createApiContent<S extends { [k: string]: object }, A extends { [k: string]: Function }>(option: {
-  state?: S
-  action?: A
-  destory?: () => void
-}) {
-  if (!option.state) {
-    option.state = {} as S
+function createApiContent<
+  STATES extends { [k: string]: object },
+  ACTIONS extends { [k: string]: Function },
+  DESTORY extends Function
+>(option: {
+  states?: STATES
+  actions?: ACTIONS
+  destory?: DESTORY
+}): {
+  states: ReadonlyStates<STATES>
+  actions: ReadonlyActions<ACTIONS>
+  destory: DESTORY
+} {
+  if (!option.states) {
+    option.states = {} as STATES
   }
-  if (!option.action) {
-    option.action = {} as A
+  if (!option.actions) {
+    option.actions = {} as ACTIONS
   }
-  if (!option.destory) {
-    option.destory = () => {}
+  const destory = (option.destory || (() => {})) as DESTORY
+  for (const k of Object.keys(option.states)) {
+    ;(option.states as any)[k] = readonly(option.states[k])
   }
-  for (const k of Object.keys(option.state)) {
-    ;(option.state as any)[k] = readonly(option.state[k])
-  }
-  const state = shallowReadonly(option.state || {}) as ReadonlyStates<S>
-  const action = readonly(option.action || {}) as ReadonlyActions<A>
+  const states = shallowReadonly(option.states) as ReadonlyStates<STATES>
+  const actions = readonly(option.actions) as ReadonlyActions<ACTIONS>
   return {
-    state,
-    action,
-    destory() {},
+    states,
+    actions,
+    destory,
   }
 }
 
-type Store<STATES, ACTIONS> = {
-  readonly api: Api<STATES, ACTIONS>
+export type Store<STATES, ACTIONS, DESTORY> = {
+  readonly api: Api<STATES, ACTIONS, DESTORY>
 }
 
-type SingletonStore<STATES, ACTIONS> = {
+export type SingletonStore<STATES, ACTIONS> = {
   readonly api: SingletonApi<STATES, ACTIONS>
 }
 
-//TODO: 待设计完善
-function createStore<STATES extends { [k: string]: object }, ACTIONS extends { [k: string]: Function }>(
+export function createStore<
+  STATES extends { [k: string]: object },
+  ACTIONS extends { [k: string]: Function },
+  DESTORY extends Function
+>(
   run: (context: {
-    defineStates: (states: STATES) => void
-    defineActions: (actions: ACTIONS) => void
     defineEffect: <T extends WatchHandle>(t: T) => T
-  }) => void
-): Store<STATES, ACTIONS> {
-  let state = {} as STATES
-  let action = {} as ACTIONS
-  const watchEffect: WatchHandle[] = []
-  function defineStates(states: STATES) {
-    state = Object.assign(state, states)
+    getLastEffect: () => WatchHandle | undefined
+    watchHandles: WatchHandle[]
+  }) => {
+    states?: STATES
+    actions?: ACTIONS
+    destory?: DESTORY
   }
-  function defineActions(actions: ACTIONS) {
-    action = Object.assign(action, actions)
-  }
-  function defineEffect<T extends WatchHandle>(t: T) {
-    watchEffect.push(t)
+): Store<STATES, ACTIONS, DESTORY> {
+  const watchHandles: WatchHandle[] = shallowReactive([])
+  function defineEffect<T extends WatchHandle>(t: T): T {
+    watchHandles.push(t)
     return t
   }
-  run({
-    defineStates,
-    defineActions,
+  function getLastEffect() {
+    if (watchHandles.length === 0) {
+      return undefined
+    }
+    return watchHandles[watchHandles.length - 1]
+  }
+  const result = run({
     defineEffect,
+    getLastEffect,
+    watchHandles,
   })
+  const states = (result.states || {}) as STATES
+  const actions = (result.actions || {}) as ACTIONS
+  const destory = (result.destory ? result.destory : () => {}) as DESTORY
   return {
     api: shallowReadonly(
       createApi({
-        state,
-        action,
-        destory: () => {
-          for (const handle of watchEffect) {
-            handle.stop()
-          }
-        },
+        states,
+        actions,
+        destory,
       })
     ),
   }
 }
 
 export function createSingletonStore<STATES extends { [k: string]: object }, ACTIONS extends { [k: string]: Function }>(
-  run: (context: { defineStates: (states: STATES) => void; defineActions: (actions: ACTIONS) => void }) => void
+  init: () => { states?: STATES; actions?: ACTIONS }
 ): SingletonStore<STATES, ACTIONS> {
-  let state = {} as STATES
-  let action = {} as ACTIONS
-  function defineStates(states: STATES) {
-    state = Object.assign(state, states)
-  }
-  function defineActions(actions: ACTIONS) {
-    action = Object.assign(action, actions)
-  }
-  run({
-    defineStates,
-    defineActions,
-  })
+  const result = init()
+  const states = (result.states || {}) as STATES
+  const actions = (result.actions || {}) as ACTIONS
   return {
-    api: shallowReadonly(createSingletonApi({ state, action })),
+    api: createSingletonApi({
+      states,
+      actions,
+    }),
   }
 }
