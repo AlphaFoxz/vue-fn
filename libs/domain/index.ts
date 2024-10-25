@@ -1,7 +1,6 @@
 import {
-  type Ref,
+  type UnwrapNestedRefs,
   DeepReadonly,
-  Reactive,
   readonly,
   shallowReactive,
   shallowReadonly,
@@ -9,31 +8,13 @@ import {
   WatchHandle,
 } from '@vue/reactivity'
 
-export type ReadonlyStates<STATES> = {
-  readonly [K in keyof STATES]: STATES[K] extends Ref
-    ? DeepReadonly<Ref<STATES[K]['value']>>
-    : STATES[K] extends object
-    ? ReadonlyStates<STATES[K]>
-    : Readonly<STATES[K]>
-}
+export type ReadonlyStates<STATES> = Readonly<{
+  [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
+}>
 
 export type ReadonlyActions<ACTIONS> = {
   readonly [K in keyof ACTIONS]: ACTIONS[K] extends Function ? ACTIONS[K] : never
 }
-
-type UniqueArray<T> = T extends readonly [infer X, ...infer Rest]
-  ? InArray<Rest, X> extends true
-    ? ['Encountered value with duplicates:', X]
-    : readonly [X, ...UniqueArray<Rest>]
-  : T
-
-type InArray<T, X> = T extends readonly [X, ...infer _Rest]
-  ? true
-  : T extends readonly [X]
-  ? true
-  : T extends readonly [infer _, ...infer Rest]
-  ? InArray<Rest, X>
-  : false
 
 export type Api<STATES, ACTIONS, DESTORY> = Readonly<{
   states: ReadonlyStates<STATES>

@@ -16,13 +16,13 @@ it('createTimeout 超时执行自定义逻辑', async () => {
 })
 it('createTimeout 无错误', async () => {
   const { resolve, promise } = createTimeout(3)
-  resolve.value()
+  resolve()
   await promise
 })
 it('createTimeout 异步成功无错误', async () => {
   const { resolve, promise } = createTimeout(3)
   setTimeout(() => {
-    resolve.value()
+    resolve()
   }, 1)
   await promise
 })
@@ -32,7 +32,7 @@ it('createTimeout 重置倒计时成功', async () => {
     reset(5)
   }, 1)
   setTimeout(() => {
-    resolve.value()
+    resolve()
   }, 5)
   await promise
 })

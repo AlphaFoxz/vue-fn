@@ -1,7 +1,7 @@
 import { type ShallowRef, shallowRef } from '@vue/reactivity'
 
-export interface TimeoutApi {
-  resolve: ShallowRef<() => void>
+export type TimeoutApi = {
+  resolve: () => void
   reset: (ms?: number) => void
   isTimeout: ShallowRef<boolean>
   promise: Promise<void>
@@ -10,29 +10,39 @@ export interface TimeoutApi {
 export function createTimeout(timeoutMs: number, onTimeout: Error | (() => void) = new Error('timeout!')): TimeoutApi {
   let timeout: undefined | null | ReturnType<typeof setTimeout> = undefined
   const isTimeout = shallowRef(false)
-  let resolve = shallowRef(() => {
+  let resolveEffect = () => {
     if (!timeout) {
       timeout = null
       return
     }
     clearTimeout(timeout!)
     timeout = null
-  })
-  let reject = shallowRef((e: Error | (() => void)) => {
+  }
+  const resolve = new Proxy(() => void 0, {
+    apply: function (_target: Function, _thisArg: any, argumentsList: any[]) {
+      return (resolveEffect as any)(...argumentsList)
+    },
+  }) as typeof resolveEffect
+  let rejectEffect = (e: Error | (() => void)) => {
     isTimeout.value = true
     if (e instanceof Error) {
       throw e
     } else {
       e()
     }
-  })
+  }
+  const reject = new Proxy((_: Error | (() => void)) => void 0, {
+    apply: function (_target: Function, _thisArg: any, argumentsList: any[]) {
+      return (rejectEffect as any)(...argumentsList)
+    },
+  }) as typeof rejectEffect
   const reset = (ms: number = timeoutMs) => {
     if (!timeout) {
       return
     }
     clearTimeout(timeout)
     timeout = setTimeout(() => {
-      reject.value(onTimeout)
+      reject(onTimeout)
     }, ms)
     timeoutMs = ms
   }
@@ -42,14 +52,14 @@ export function createTimeout(timeoutMs: number, onTimeout: Error | (() => void)
       return
     }
     timeout = setTimeout(() => {
-      reject.value(onTimeout)
+      reject(onTimeout)
     }, timeoutMs)
-    resolve.value = () => {
+    resolveEffect = () => {
       innerResolve()
       clearTimeout(timeout!)
       timeout = null
     }
-    reject.value = (e: Error | (() => void)) => {
+    rejectEffect = (e: Error | (() => void)) => {
       isTimeout.value = true
       if (e instanceof Error) {
         innerReject(e)
