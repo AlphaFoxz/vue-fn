@@ -128,7 +128,7 @@ describe('测试AggApi', () => {
     expect(dz2.value).toBe(undefined)
   })
 
-  it('createAggApi destory副作用处理', async () => {
+  it('createUnmountableAgg destory副作用处理', async () => {
     let clearFlag = false
     const agg = createUnmountableAgg((context) => {
       const a = ref('a')
