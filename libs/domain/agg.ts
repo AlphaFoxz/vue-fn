@@ -5,7 +5,6 @@ import {
   shallowReactive,
   shallowReadonly,
   WatchHandle,
-  triggerRef,
 } from '@vue/reactivity'
 import { createDefaultDestoryEvent, DomainDestoryEvent, DomainEvent, toEventApi } from './events'
 
