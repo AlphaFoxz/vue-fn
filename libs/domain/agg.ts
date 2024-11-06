@@ -8,7 +8,13 @@ import {
   effectScope,
   onScopeDispose,
 } from '@vue/reactivity'
-import { createDefaultDestoryEvent, DomainDestoryEvent, DomainDestoryEventApi, DomainEvent, toEventApi } from './events'
+import {
+  createDefaultDestroyedEvent,
+  DomainDestroyedEvent,
+  DomainDestroyedEventApi,
+  DomainEvent,
+  toEventApi,
+} from './events'
 
 export type ReadonlyStates<STATES> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -33,13 +39,13 @@ export type ReadonlyEvents<EVENTS> = Readonly<{
 export type ReadonlyUnmountableEvents<EVENTS> = Readonly<
   {
     [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<Omit<EVENTS[K], 'trigger'>>>
-  } & { destory: DeepReadonly<UnwrapNestedRefs<DomainDestoryEventApi>> }
+  } & { destroyed: DeepReadonly<UnwrapNestedRefs<DomainDestroyedEventApi>> }
 >
 
-export type DomainUnmountableAggApi<STATES, ACTIONS, DESTORY> = Readonly<{
+export type DomainUnmountableAggApi<STATES, ACTIONS, DESTROY> = Readonly<{
   states: ReadonlyStates<STATES>
   actions: ReadonlyActions<ACTIONS>
-  destory: DESTORY
+  destroy: DESTROY
 }>
 
 export type DomainAggApi<STATES, ACTIONS> = Readonly<{
@@ -50,12 +56,12 @@ export type DomainAggApi<STATES, ACTIONS> = Readonly<{
 export function createUnmountableAggApi<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
-  DESTORY extends Function
+  DESTROY extends Function
 >(option: {
   states?: STATES
   actions?: ACTIONS
-  destory?: DESTORY
-}): DomainUnmountableAggApi<STATES, ACTIONS, DESTORY> {
+  destroy?: DESTROY
+}): DomainUnmountableAggApi<STATES, ACTIONS, DESTROY> {
   return shallowReadonly(createAggApiContent(option))
 }
 
@@ -73,15 +79,15 @@ export function createAggApi<
 function createAggApiContent<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
-  DESTORY extends Function
+  DESTROY extends Function
 >(option: {
   states?: STATES
   actions?: ACTIONS
-  destory?: DESTORY
+  destroy?: DESTROY
 }): {
   states: ReadonlyStates<STATES>
   actions: ReadonlyActions<ACTIONS>
-  destory: DESTORY
+  destroy: DESTROY
 } {
   if (!option.states) {
     option.states = {} as STATES
@@ -89,7 +95,7 @@ function createAggApiContent<
   if (!option.actions) {
     option.actions = {} as ACTIONS
   }
-  const destory = (option.destory || (() => {})) as DESTORY
+  const destroy = (option.destroy || (() => {})) as DESTROY
   for (const k of Object.keys(option.states)) {
     ;(option.states as any)[k] = readonly(option.states[k])
   }
@@ -98,12 +104,12 @@ function createAggApiContent<
   return {
     states,
     actions,
-    destory,
+    destroy,
   }
 }
 
-export type DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> = {
-  readonly api: DomainUnmountableAggApi<STATES, ACTIONS, DESTORY>
+export type DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTROY> = {
+  readonly api: DomainUnmountableAggApi<STATES, ACTIONS, DESTROY>
   events: ReadonlyUnmountableEvents<EVENTS>
 }
 
@@ -115,8 +121,8 @@ export type DomainAgg<STATES, ACTIONS, EVENTS> = {
 export function createUnmountableAgg<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
-  DESTORY extends Function,
-  EVENTS extends { [name: string]: DomainEvent<any, any> } & { destory?: DomainDestoryEvent }
+  DESTROY extends Function,
+  EVENTS extends { [name: string]: DomainEvent<any, any> } & { destroyed?: DomainDestroyedEvent }
 >(
   init: (context: {
     getCurrentScope: () => EffectScope
@@ -124,10 +130,10 @@ export function createUnmountableAgg<
   }) => {
     states?: STATES
     actions?: ACTIONS
-    destory?: DESTORY
+    destroy?: DESTROY
     events?: EVENTS
   }
-): DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> {
+): DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTROY> {
   const scope = effectScope()
   const result = scope.run(() =>
     init({
@@ -140,29 +146,29 @@ export function createUnmountableAgg<
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS
-  let destoryEvent: DomainDestoryEvent | undefined
-  if (!events.destory) {
-    destoryEvent = createDefaultDestoryEvent()
-    events.destory = destoryEvent
+  let destroyedEvent: DomainDestroyedEvent | undefined
+  if (!events.destroyed) {
+    destroyedEvent = createDefaultDestroyedEvent()
+    events.destroyed = destroyedEvent
   } else {
-    destoryEvent = events.destory
+    destroyedEvent = events.destroyed
   }
   for (const k of Object.keys(events)) {
     ;(events as any)[k] = toEventApi(events[k])
   }
-  const destory = (
-    result.destory
-      ? result.destory
+  const destroy = (
+    result.destroy
+      ? result.destroy
       : () => {
-          destoryEvent?.trigger({})
           scope.stop()
+          destroyedEvent?.trigger({})
         }
-  ) as DESTORY
+  ) as DESTROY
   return {
     api: createUnmountableAggApi({
       states,
       actions,
-      destory,
+      destroy,
     }),
     events: shallowReactive(events) as any,
   }

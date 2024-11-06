@@ -44,10 +44,10 @@ it('createUnmountableAgg 测试自带的销毁功能', async () => {
     }
   })
   const destoried = ref(false)
-  agg.events.destory.watch(() => {
+  agg.events.destroyed.watch(() => {
     destoried.value = true
   })
-  agg.api.destory()
+  agg.api.destroy()
   await new Promise((resolve) => setTimeout(resolve, 1))
   expect(destoried.value).toBe(true)
 })

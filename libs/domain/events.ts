@@ -11,9 +11,9 @@ import {
 
 type InferOptFunction<T> = T extends Function ? T : undefined
 
-export type DomainDestoryEvent = DomainEvent<{}, undefined>
-export type DomainDestoryEventApi = DomainEventApi<{}, undefined>
-export function createDefaultDestoryEvent(): DomainDestoryEvent {
+export type DomainDestroyedEvent = DomainEvent<{}, undefined>
+export type DomainDestroyedEventApi = DomainEventApi<{}, undefined>
+export function createDefaultDestroyedEvent(): DomainDestroyedEvent {
   return createEvent({})
 }
 

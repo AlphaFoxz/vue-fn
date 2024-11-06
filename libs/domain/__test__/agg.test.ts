@@ -152,7 +152,7 @@ describe('测试AggApi', () => {
     agg.api.actions.setA('a1')
     await new Promise((resolve) => setTimeout(resolve, 1))
     expect(agg.api.states.aPlus.value).toBe('a1+')
-    agg.api.destory()
+    agg.api.destroy()
     await new Promise((resolve) => setTimeout(resolve, 1))
     expect(clearFlag).toBe(true)
     agg.api.actions.setA('b')
@@ -187,7 +187,7 @@ describe('测试AggApi', () => {
             a.value = n
           },
         },
-        destory() {
+        destroy() {
           stop()
         },
       })
@@ -196,7 +196,7 @@ describe('测试AggApi', () => {
     api.actions.setA('a1')
     await new Promise((resolve) => setTimeout(resolve, 1))
     expect(api.states.aPlus.value).toBe('a1+')
-    api.destory()
+    api.destroy()
     await new Promise((resolve) => setTimeout(resolve, 1))
     api.actions.setA('b')
     await new Promise((resolve) => setTimeout(resolve, 1))
@@ -393,7 +393,7 @@ describe('', () => {
             a.value = n
           },
         },
-        destory() {
+        destroy() {
           stop()
         },
       })
@@ -402,7 +402,7 @@ describe('', () => {
     api.actions.setA('a1')
     await new Promise((resolve) => setTimeout(resolve, 1))
     expect(api.states.aPlus.value).toBe('a1+')
-    api.destory()
+    api.destroy()
     await new Promise((resolve) => setTimeout(resolve, 1))
     api.actions.setA('b')
     await new Promise((resolve) => setTimeout(resolve, 1))
