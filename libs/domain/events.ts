@@ -3,6 +3,7 @@ import {
   DeepReadonly,
   UnwrapNestedRefs,
   readonly,
+  shallowReadonly,
   shallowRef,
   triggerRef,
   watch,
@@ -10,16 +11,15 @@ import {
 
 type InferOptFunction<T> = T extends Function ? T : undefined
 
-export type DomainDestoryEvent = DomainEvent<{}, () => void>
-export function createDefaultDestoryEvent(callback: () => void): DomainDestoryEvent {
-  return createEvent({}, callback)
+export type DomainDestoryEvent = DomainEvent<{}, undefined>
+export type DomainDestoryEventApi = DomainEventApi<{}, undefined>
+export function createDefaultDestoryEvent(): DomainDestoryEvent {
+  return createEvent({})
 }
 
-export type DomainEvent<T, UX> = {
+export type DomainEvent<T, U> = {
   data: DeepReadonly<UnwrapNestedRefs<T>>
-  watch: (
-    cb: (event: { data: DeepReadonly<UnwrapNestedRefs<T>>; version: number; callback: UX }) => void
-  ) => WatchHandle
+  watch: (cb: (event: { data: DeepReadonly<UnwrapNestedRefs<T>>; version: number; callback: U }) => void) => WatchHandle
   trigger: (data: UnwrapNestedRefs<T>) => void
 }
 
@@ -55,6 +55,8 @@ export function createEvent<T extends { [key: string]: object }, U extends Funct
   }
 }
 
-export function toEventApi<T, U extends Function>(event: DomainEvent<T, U>, callback?: U) {
-  return { callback, data: event.data, watch: event.watch }
+export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger'>
+
+export function toEventApi<T, U>(event: DomainEvent<T, U>): DomainEventApi<T, U> {
+  return shallowReadonly({ data: event.data, watch: event.watch })
 }

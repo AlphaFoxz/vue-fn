@@ -6,7 +6,7 @@ import {
   shallowReadonly,
   WatchHandle,
 } from '@vue/reactivity'
-import { createDefaultDestoryEvent, DomainDestoryEvent, DomainEvent, toEventApi } from './events'
+import { createDefaultDestoryEvent, DomainDestoryEvent, DomainDestoryEventApi, DomainEvent, toEventApi } from './events'
 
 export type ReadonlyStates<STATES> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -17,13 +17,21 @@ export type ReadonlyActions<ACTIONS> = Readonly<{
 }>
 
 export type ReadonlyEvents<EVENTS> = Readonly<{
-  [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<EVENTS[K]>>
+  [K in keyof EVENTS]: DeepReadonly<
+    UnwrapNestedRefs<
+      // DomainEventApi<
+      //   EVENTS[K] extends DomainEvent<infer T1, unknown> ? T1 : never,
+      //   EVENTS[K] extends DomainEvent<unknown, infer T2> ? T2 : never
+      // >
+      Omit<EVENTS[K], 'trigger'>
+    >
+  >
 }>
 
 export type ReadonlyUnmountableEvents<EVENTS> = Readonly<
   {
-    [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<EVENTS[K]>>
-  } & { destory: DeepReadonly<UnwrapNestedRefs<DomainDestoryEvent>> }
+    [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<Omit<EVENTS[K], 'trigger'>>>
+  } & { destory: DeepReadonly<UnwrapNestedRefs<DomainDestoryEventApi>> }
 >
 
 export type DomainUnmountableAggApi<STATES, ACTIONS, DESTORY> = Readonly<{
@@ -145,15 +153,22 @@ export function createUnmountableAgg<
     result.destory
       ? result.destory
       : () => {
-          events.destory?.trigger({})
+          destoryEvent?.trigger({})
           for (const handle of watchHandles) {
             handle()
           }
         }
   ) as DESTORY
   const events = (result.events || {}) as EVENTS
+  let destoryEvent: DomainDestoryEvent | undefined
   if (!events.destory) {
-    events.destory = createDefaultDestoryEvent(() => {})
+    destoryEvent = createDefaultDestoryEvent()
+    events.destory = destoryEvent
+  } else {
+    destoryEvent = events.destory
+  }
+  for (const k of Object.keys(events)) {
+    ;(events as any)[k] = toEventApi(events[k])
   }
   return {
     api: createUnmountableAggApi({
@@ -161,7 +176,7 @@ export function createUnmountableAgg<
       actions,
       destory,
     }),
-    events: shallowReactive(events) as ReadonlyUnmountableEvents<EVENTS>,
+    events: shallowReactive(events) as any,
   }
 }
 
@@ -181,9 +196,7 @@ export function createAgg<
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS
   for (const k of Object.keys(events)) {
-    if (events[k]) {
-      ;(events as any)[k] = toEventApi(events[k])
-    }
+    ;(events as any)[k] = toEventApi(events[k])
   }
   return {
     api: createAggApi({

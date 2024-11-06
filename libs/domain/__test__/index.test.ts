@@ -37,7 +37,22 @@ it('event + agg 触发事件', async () => {
   expect(agg.api.states.version.value).toBe(1)
 })
 
-it('event + agg data可变性', async () => {
+it('createUnmountableAgg 测试自带的销毁功能', async () => {
+  const agg = createUnmountableAgg(() => {
+    return {
+      events: {},
+    }
+  })
+  const destoried = ref(false)
+  agg.events.destory.watch(() => {
+    destoried.value = true
+  })
+  agg.api.destory()
+  await new Promise((resolve) => setTimeout(resolve, 1))
+  expect(destoried.value).toBe(true)
+})
+
+it('event中的data应该脱离响应式', async () => {
   const agg = createAgg(() => {
     const version = ref(0)
     const name = ref('unknown')
