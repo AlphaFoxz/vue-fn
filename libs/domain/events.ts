@@ -11,6 +11,7 @@ import {
 
 type InferOptFunction<T> = T extends Function ? T : undefined
 
+export type DomainEventArgs = { [key: string]: any }
 export type DomainDestroyedEvent = DomainEvent<{}, undefined>
 export type DomainDestroyedEventApi = DomainEventApi<{}, undefined>
 export function createDefaultDestroyedEvent(): DomainDestroyedEvent {
@@ -23,13 +24,9 @@ export type DomainEvent<T, U> = {
   trigger: (data: UnwrapNestedRefs<T>) => void
 }
 
-export function createEvent<T extends { [key: string]: object }, U extends undefined>(data: T): DomainEvent<T, U>
-export function createEvent<T extends { [key: string]: object }, U extends Function>(
-  data: T,
-  callback: U
-): DomainEvent<T, U>
-
-export function createEvent<T extends { [key: string]: object }, U extends Function, UX = InferOptFunction<U>>(
+export function createEvent<T extends DomainEventArgs, U extends undefined>(data: T): DomainEvent<T, U>
+export function createEvent<T extends DomainEventArgs, U extends Function>(data: T, callback: U): DomainEvent<T, U>
+export function createEvent<T extends DomainEventArgs, U extends Function, UX = InferOptFunction<U>>(
   data: T,
   callback?: U
 ): DomainEvent<T, UX> {

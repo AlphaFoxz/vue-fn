@@ -59,8 +59,9 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
 it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', async () => {
   const agg = createUnmountableAgg(() => {
     const name = ref('')
+    let age = 0
     const watchName = ref(name.value)
-    const loadedEvent = createEvent({ name })
+    const loadedEvent = createEvent({ name, age })
     loadedEvent.watch(({ data }) => {
       watchName.value = data.name
     })
@@ -71,7 +72,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
       actions: {
         load(n: string) {
           name.value = n
-          loadedEvent.trigger({ name: name.value })
+          loadedEvent.trigger({ name: name.value, age })
         },
       },
       events: {
