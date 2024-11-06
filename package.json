@@ -8,10 +8,10 @@
   ],
   "private": true,
   "scripts": {
-    "build": "pnpm build:pack && pnpm build:check && pnpm test && pnpm build:sync",
+    "build": "pnpm build:pack && pnpm verify && pnpm test && pnpm build:sync",
     "build:pack": "vite build && node scripts/gen-package-info.mjs",
-    "build:check": "tsc -p tsconfig.build.json --composite false",
     "build:sync": "ncp ./package.publish.json ./dist/package.json",
+    "verify": "tsc -p tsconfig.build.json --composite false",
     "test": "npx jest"
   },
   "dependencies": {

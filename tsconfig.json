@@ -14,6 +14,8 @@
     "target": "ESNext",
     "esModuleInterop": true,
     "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "lib": [
       "DOM"
     ],
