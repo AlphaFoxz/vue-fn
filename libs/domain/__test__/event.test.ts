@@ -10,15 +10,15 @@ it('createEvent', async () => {
   }
   const event = register()
   const repo = { name: '', version: 0 }
-  event.watch((data, version) => {
+  event.watch(({ data, version }) => {
     repo.name = data.name
     repo.version = version
   })
-  event.trigger()
+  event.trigger({ name: event.data.name })
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(repo.name).toBe('wong')
   expect(repo.version).toBe(1)
-  event.trigger()
+  event.trigger({ name: event.data.name })
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(repo.version).toBe(2)
 })

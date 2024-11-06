@@ -174,7 +174,7 @@ describe('测试AggApi', () => {
 })
 
 describe('', () => {
-  it('createSingletonAgg 基本成员变量数值验证', () => {
+  it('createAgg 基本成员变量数值验证', () => {
     const agg = createAgg(() => {
       return {
         states: {
@@ -191,42 +191,7 @@ describe('', () => {
     expect(agg.api.actions.log).toBeInstanceOf(Function)
   })
 
-  it('createSingletonAgg 触发器检查', async () => {
-    const agg = createAgg(({ context }) => {
-      const version = ref(0)
-      const name = ref('unknown')
-      return {
-        states: {
-          version,
-        },
-        actions: {
-          setName(n: string) {
-            name.value = n
-            context.triggerEvent('onSave')
-          },
-        },
-        events: {
-          onSave: {
-            callback: () => {
-              version.value++
-            },
-          },
-        },
-      }
-    })
-
-    const saved = ref(false)
-    watch(agg.events.onSave, (event) => {
-      event.callback?.()
-      saved.value = true
-    })
-    agg.api.actions.setName('bob')
-    await new Promise((resolve) => setTimeout(resolve, 2))
-    expect(saved.value).toBe(true)
-    expect(agg.api.states.version.value).toBe(1)
-  })
-
-  it('createAgg', () => {
+  it('createUnmountableAgg', () => {
     const agg = createUnmountableAgg(({ context }) => {
       const a = ref('a')
       context.defineEffect(watch(a, () => {}))

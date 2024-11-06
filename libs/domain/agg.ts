@@ -5,10 +5,9 @@ import {
   shallowReactive,
   shallowReadonly,
   WatchHandle,
-  shallowRef,
-  ShallowRef,
   triggerRef,
 } from '@vue/reactivity'
+import { createDefaultDestoryEvent, DomainDestoryEvent, DomainEvent, toEventApi } from './events'
 
 export type ReadonlyStates<STATES> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -19,16 +18,22 @@ export type ReadonlyActions<ACTIONS> = Readonly<{
 }>
 
 export type ReadonlyEvents<EVENTS> = Readonly<{
-  [K in keyof EVENTS]: Readonly<ShallowRef<EVENTS[K]>>
+  [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<EVENTS[K]>>
 }>
 
-export type UnmountableAggApi<STATES, ACTIONS, DESTORY> = Readonly<{
+export type ReadonlyUnmountableEvents<EVENTS> = Readonly<
+  {
+    [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<EVENTS[K]>>
+  } & { destory: DeepReadonly<UnwrapNestedRefs<DomainDestoryEvent>> }
+>
+
+export type DomainUnmountableAggApi<STATES, ACTIONS, DESTORY> = Readonly<{
   states: ReadonlyStates<STATES>
   actions: ReadonlyActions<ACTIONS>
   destory: DESTORY
 }>
 
-export type AggApi<STATES, ACTIONS> = Readonly<{
+export type DomainAggApi<STATES, ACTIONS> = Readonly<{
   states: ReadonlyStates<STATES>
   actions: ReadonlyActions<ACTIONS>
 }>
@@ -37,14 +42,18 @@ export function createUnmountableAggApi<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
   DESTORY extends Function
->(option: { states?: STATES; actions?: ACTIONS; destory?: DESTORY }): UnmountableAggApi<STATES, ACTIONS, DESTORY> {
+>(option: {
+  states?: STATES
+  actions?: ACTIONS
+  destory?: DESTORY
+}): DomainUnmountableAggApi<STATES, ACTIONS, DESTORY> {
   return shallowReadonly(createAggApiContent(option))
 }
 
 export function createAggApi<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function }
->(option: { states?: STATES; actions?: ACTIONS }): AggApi<STATES, ACTIONS> {
+>(option: { states?: STATES; actions?: ACTIONS }): DomainAggApi<STATES, ACTIONS> {
   const apiContent = createAggApiContent(option)
   return shallowReadonly({
     states: apiContent.states,
@@ -84,13 +93,13 @@ function createAggApiContent<
   }
 }
 
-export type UnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> = {
-  readonly api: UnmountableAggApi<STATES, ACTIONS, DESTORY>
-  events: ReadonlyEvents<EVENTS>
+export type DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> = {
+  readonly api: DomainUnmountableAggApi<STATES, ACTIONS, DESTORY>
+  events: ReadonlyUnmountableEvents<EVENTS>
 }
 
-export type Agg<STATES, ACTIONS, EVENTS> = {
-  readonly api: AggApi<STATES, ACTIONS>
+export type DomainAgg<STATES, ACTIONS, EVENTS> = {
+  readonly api: DomainAggApi<STATES, ACTIONS>
   events: ReadonlyEvents<EVENTS>
 }
 
@@ -98,15 +107,13 @@ export function createUnmountableAgg<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
   DESTORY extends Function,
-  EVENTS extends { [name: string]: { callback?: Function } },
-  EVENTKEYS extends Extract<keyof EVENTS, string>
+  EVENTS extends { [name: string]: DomainEvent<any, any> } & { destory?: DomainDestoryEvent }
 >(
   init: (context: {
     context: {
       defineEffect: <T extends WatchHandle>(t: T) => T
       getLastEffect: () => WatchHandle | undefined
       watchHandles: WatchHandle[]
-      triggerEvent: (name: EVENTKEYS) => void
     }
   }) => {
     states?: STATES
@@ -114,7 +121,7 @@ export function createUnmountableAgg<
     destory?: DESTORY
     events?: EVENTS
   }
-): UnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> {
+): DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> {
   const watchHandles: WatchHandle[] = shallowReactive([])
   function defineEffect<T extends WatchHandle>(t: T): T {
     watchHandles.push(t)
@@ -126,55 +133,57 @@ export function createUnmountableAgg<
     }
     return watchHandles[watchHandles.length - 1]
   }
-  function triggerEvent(name: EVENTKEYS) {
-    triggerRef(events[name as any] as any)
-  }
   const result = init({
     context: {
       defineEffect,
       getLastEffect,
       watchHandles,
-      triggerEvent,
     },
   })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
-  const destory = (result.destory ? result.destory : () => {}) as DESTORY
+  const destory = (
+    result.destory
+      ? result.destory
+      : () => {
+          events.destory?.trigger({})
+          for (const handle of watchHandles) {
+            handle()
+          }
+        }
+  ) as DESTORY
   const events = (result.events || {}) as EVENTS
+  if (!events.destory) {
+    events.destory = createDefaultDestoryEvent(() => {})
+  }
   return {
-    api: shallowReadonly(
-      createUnmountableAggApi({
-        states,
-        actions,
-        destory,
-      })
-    ),
-    events: shallowReactive(events) as ReadonlyEvents<EVENTS>,
+    api: createUnmountableAggApi({
+      states,
+      actions,
+      destory,
+    }),
+    events: shallowReactive(events) as ReadonlyUnmountableEvents<EVENTS>,
   }
 }
 
 export function createAgg<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
-  EVENTS extends { [name: string]: { callback?: Function } },
-  EVENTKEYS extends Extract<keyof EVENTS, string>
+  EVENTS extends { [name: string]: DomainEvent<any, any> }
 >(
-  init: (context: { context: { triggerEvent: (name: EVENTKEYS) => void } }) => {
+  init: () => {
     states?: STATES
     actions?: ACTIONS
     events?: EVENTS
   }
-): Agg<STATES, ACTIONS, EVENTS> {
-  function triggerEvent(name: EVENTKEYS) {
-    triggerRef(events[name as any] as any)
-  }
-  const result = init({ context: { triggerEvent } })
+): DomainAgg<STATES, ACTIONS, EVENTS> {
+  const result = init()
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS
   for (const k of Object.keys(events)) {
     if (events[k]) {
-      ;(events as any)[k] = shallowRef(events[k])
+      ;(events as any)[k] = toEventApi(events[k])
     }
   }
   return {
