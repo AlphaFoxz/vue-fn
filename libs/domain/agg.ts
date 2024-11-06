@@ -4,7 +4,9 @@ import {
   readonly,
   shallowReactive,
   shallowReadonly,
-  WatchHandle,
+  EffectScope,
+  effectScope,
+  onScopeDispose,
 } from '@vue/reactivity'
 import { createDefaultDestoryEvent, DomainDestoryEvent, DomainDestoryEventApi, DomainEvent, toEventApi } from './events'
 
@@ -117,11 +119,8 @@ export function createUnmountableAgg<
   EVENTS extends { [name: string]: DomainEvent<any, any> } & { destory?: DomainDestoryEvent }
 >(
   init: (context: {
-    context: {
-      defineEffect: <T extends WatchHandle>(t: T) => T
-      getLastEffect: () => WatchHandle | undefined
-      watchHandles: WatchHandle[]
-    }
+    getCurrentScope: () => EffectScope
+    onScopeDispose: (fn: () => void, failSilently?: boolean) => void
   }) => {
     states?: STATES
     actions?: ACTIONS
@@ -129,36 +128,17 @@ export function createUnmountableAgg<
     events?: EVENTS
   }
 ): DomainUnmountableAgg<STATES, ACTIONS, EVENTS, DESTORY> {
-  const watchHandles: WatchHandle[] = shallowReactive([])
-  function defineEffect<T extends WatchHandle>(t: T): T {
-    watchHandles.push(t)
-    return t
-  }
-  function getLastEffect() {
-    if (watchHandles.length === 0) {
-      return undefined
-    }
-    return watchHandles[watchHandles.length - 1]
-  }
-  const result = init({
-    context: {
-      defineEffect,
-      getLastEffect,
-      watchHandles,
-    },
-  })
+  const scope = effectScope()
+  const result = scope.run(() =>
+    init({
+      getCurrentScope() {
+        return scope
+      },
+      onScopeDispose,
+    })
+  )!
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
-  const destory = (
-    result.destory
-      ? result.destory
-      : () => {
-          destoryEvent?.trigger({})
-          for (const handle of watchHandles) {
-            handle()
-          }
-        }
-  ) as DESTORY
   const events = (result.events || {}) as EVENTS
   let destoryEvent: DomainDestoryEvent | undefined
   if (!events.destory) {
@@ -170,6 +150,14 @@ export function createUnmountableAgg<
   for (const k of Object.keys(events)) {
     ;(events as any)[k] = toEventApi(events[k])
   }
+  const destory = (
+    result.destory
+      ? result.destory
+      : () => {
+          destoryEvent?.trigger({})
+          scope.stop()
+        }
+  ) as DESTORY
   return {
     api: createUnmountableAggApi({
       states,

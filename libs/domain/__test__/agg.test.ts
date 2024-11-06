@@ -128,6 +128,38 @@ describe('测试AggApi', () => {
     expect(dz2.value).toBe(undefined)
   })
 
+  it('createAggApi destory副作用处理', async () => {
+    let clearFlag = false
+    const agg = createUnmountableAgg((context) => {
+      const a = ref('a')
+      const aPlus = ref('')
+      watchEffect(() => {
+        aPlus.value = a.value + '+'
+      })
+      context.onScopeDispose(() => {
+        clearFlag = true
+      })
+      return {
+        states: { a, aPlus },
+        actions: {
+          setA(n: string) {
+            a.value = n
+          },
+        },
+      }
+    })
+
+    agg.api.actions.setA('a1')
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    expect(agg.api.states.aPlus.value).toBe('a1+')
+    agg.api.destory()
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    expect(clearFlag).toBe(true)
+    agg.api.actions.setA('b')
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    expect(agg.api.states.aPlus.value).toBe('a1+')
+  })
+
   it('createUnmountableAggApi watcher副作用处理', async () => {
     const api = (function () {
       const a = ref('a')
@@ -192,9 +224,9 @@ describe('', () => {
   })
 
   it('createUnmountableAgg', () => {
-    const agg = createUnmountableAgg(({ context }) => {
+    const agg = createUnmountableAgg(() => {
       const a = ref('a')
-      context.defineEffect(watch(a, () => {}))
+      watch(a, () => {})
       return {
         states: {
           a,
