@@ -37,19 +37,56 @@ it('event + agg 触发事件', async () => {
   expect(agg.api.states.version.value).toBe(1)
 })
 
-it('createUnmountableAgg 测试自带的销毁功能', async () => {
+it('createUnmountableAgg 测试自带的销毁事件', async () => {
   const agg = createUnmountableAgg(() => {
     return {
+      states: {},
+      actions: {},
       events: {},
     }
   })
-  const destoried = ref(false)
+  await new Promise((resolve) => setTimeout(resolve, 1))
+  const isDestroyed = ref(false)
   agg.events.destroyed.watch(() => {
-    destoried.value = true
+    isDestroyed.value = true
   })
   agg.api.destroy()
   await new Promise((resolve) => setTimeout(resolve, 1))
-  expect(destoried.value).toBe(true)
+  expect(isDestroyed.value).toBe(true)
+  await new Promise((resolve) => setTimeout(resolve, 1))
+})
+
+it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', async () => {
+  const agg = createUnmountableAgg(() => {
+    const name = ref('')
+    const watchName = ref(name.value)
+    const loadedEvent = createEvent({ name })
+    loadedEvent.watch(({ data }) => {
+      watchName.value = data.name
+    })
+    return {
+      states: {
+        watchName,
+      },
+      actions: {
+        load(n: string) {
+          name.value = n
+          loadedEvent.trigger({ name: name.value })
+        },
+      },
+      events: {
+        loaded: loadedEvent,
+      },
+    }
+  })
+  agg.api.actions.load('bob')
+  await new Promise((resolve) => setTimeout(resolve, 1))
+  expect(agg.api.states.watchName.value).toBe('bob')
+  agg.api.destroy()
+  await new Promise((resolve) => setTimeout(resolve, 1))
+  agg.api.actions.load('wong')
+  await new Promise((resolve) => setTimeout(resolve, 1))
+  expect(agg.api.states.watchName.value).toBe('bob')
 })
 
 it('event中的data应该脱离响应式', async () => {
