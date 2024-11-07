@@ -1,6 +1,6 @@
 {
   "name": "vue-fn",
-  "version": "0.0.3-aplha.8",
+  "version": "0.0.3-aplha.9",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -10,7 +10,7 @@
   "scripts": {
     "build": "pnpm build:pack && pnpm verify && pnpm test && pnpm build:sync",
     "build:pack": "vite build && node scripts/gen-package-info.mjs",
-    "build:sync": "ncp ./package.publish.json ./dist/package.json",
+    "build:sync": "ncp ./package.publish.json ./dist/package.json && ncp ./README.md ./dist/README.md",
     "verify": "tsc -p tsconfig.build.json --composite false",
     "test": "npx jest"
   },
