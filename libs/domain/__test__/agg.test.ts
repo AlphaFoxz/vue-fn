@@ -130,7 +130,7 @@ describe('测试AggApi', () => {
 
   it('createUnmountableAgg destory副作用处理', async () => {
     let clearFlag = false
-    const agg = createUnmountableAgg((context) => {
+    const agg = createUnmountableAgg(1, (context) => {
       const a = ref('a')
       const aPlus = ref('')
       watchEffect(() => {
@@ -224,7 +224,7 @@ describe('', () => {
   })
 
   it('createUnmountableAgg', () => {
-    const agg = createUnmountableAgg(() => {
+    const agg = createUnmountableAgg(1, () => {
       const a = ref('a')
       watch(a, () => {})
       return {

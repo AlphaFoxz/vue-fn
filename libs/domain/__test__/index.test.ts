@@ -3,7 +3,7 @@ import { createAgg, createEvent, createUnmountableAgg } from '..'
 import { ref } from 'vue'
 
 it('event + agg 触发事件', async () => {
-  const agg = createUnmountableAgg(() => {
+  const agg = createUnmountableAgg(1, () => {
     const version = ref(0)
     const name = ref('unknown')
     const saveEvent = createEvent({ name }, () => {
@@ -26,7 +26,7 @@ it('event + agg 触发事件', async () => {
   })
 
   const saved = ref(false)
-  agg.events.save.watch(({ data, callback }) => {
+  agg.api.events.save.watch(({ data, callback }) => {
     saved.value = true
     expect(data.name).toBe('bob')
     callback()
@@ -38,7 +38,7 @@ it('event + agg 触发事件', async () => {
 })
 
 it('createUnmountableAgg 测试自带的销毁事件', async () => {
-  const agg = createUnmountableAgg(() => {
+  const agg = createUnmountableAgg(1, () => {
     return {
       states: {},
       actions: {},
@@ -47,7 +47,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
   })
   await new Promise((resolve) => setTimeout(resolve, 1))
   const isDestroyed = ref(false)
-  agg.events.destroyed.watch(() => {
+  agg.api.events.destroyed.watch(() => {
     isDestroyed.value = true
   })
   agg.api.destroy()
@@ -57,7 +57,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
 })
 
 it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', async () => {
-  const agg = createUnmountableAgg(() => {
+  const agg = createUnmountableAgg(1, () => {
     const name = ref('')
     let age = 0
     const watchName = ref(name.value)
@@ -119,7 +119,7 @@ it('event中的data应该脱离响应式', async () => {
   })
 
   const saved = ref(false)
-  agg.events.save.watch(async ({ data }) => {
+  agg.api.events.save.watch(async ({ data }) => {
     saved.value = true
     expect(data.name).toBe('bob')
     agg.api.actions.setAge(18)
