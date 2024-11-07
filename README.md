@@ -72,13 +72,15 @@ const api = toEventApi(event)
 1、states 中的属性保持了原有的响应性
 2、states 中的属性只读，不可被外部修改
 3、外部代码只能通过调用 actions 中的函数来对聚合内产生实质的影响
+4、暴露出的事件(events)，都是 API 的形式，不可被外部 trigger
 
 #### 1.3.1 示例
 
 ```typescript
 const agg = createAgg(() => {
   const name = ref('Andy')
-  const userUpdatedEvent = createEvent({ name })
+  const age = ref(18)
+  const userUpdatedEvent = createEvent({ name, age })
   return {
     states: {
       name,
@@ -95,8 +97,16 @@ const agg = createAgg(() => {
 })
 
 agg.api.states.name.value = 'Bob' // Error, name is readonly
+userUpdated.watch((data) => {
+  // 监听事件，实现仓储
+  localStorage.setItem(data.name, JSON.stringify({ name: data.name, age: data.age }))
+})
+//
 watch(agg.api.states.name, (name) => {
-  //...do something
+  // 比如视图需要更灵敏的响应，就可以自行监听states暴露出的字段
+  if (name === 'Andy') {
+    // do something
+  }
 })
 ```
 
