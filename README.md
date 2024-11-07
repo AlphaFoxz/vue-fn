@@ -1,5 +1,16 @@
 # vue-fn
 
+## 如何使用
+
+```shell
+npm install vue-fn
+pnpm add vue-fn
+```
+
+```ts
+import { createEvent, createAgg /* others... */ } from 'vue-fn/domain'
+```
+
 ## 1 domain 领域模块
 
 ### 1.1 createEvent
