@@ -1,18 +1,31 @@
 {
   "name": "vue-fn",
-  "version": "0.0.3-aplha.9",
+  "version": "0.0.3-aplha.10",
+  "description": "",
   "type": "module",
   "sideEffects": false,
   "files": [
     "dist"
   ],
   "private": true,
+  "keywords": [
+    "vue"
+  ],
+  "author": {
+    "name": "AlphaFoxz",
+    "url": "https://github.com/AlphaFoxz"
+  },
+  "license": "UNLICENSED",
+  "repository": "https://github.com/AlphaFoxz/vue-fn",
   "scripts": {
     "build": "pnpm build:pack && pnpm verify && pnpm test && pnpm build:sync",
     "build:pack": "vite build && node scripts/gen-package-info.mjs",
-    "build:sync": "ncp ./package.publish.json ./dist/package.json && ncp ./README.md ./dist/README.md",
+    "build:sync": "ncp ./README.md ./dist/README.md",
     "verify": "tsc -p tsconfig.build.json --composite false",
     "test": "npx jest"
+  },
+  "peerDependencies": {
+    "vue": ">=3.5.0"
   },
   "dependencies": {
     "@vue/reactivity": "^3.5.12"
@@ -20,13 +33,14 @@
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@tsconfig/node20": "^20.1.4",
-    "@types/jest": "^29.5.13",
-    "@types/node": "^22.7.5",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.9.0",
     "jest": "^29.7.0",
     "ncp": "^2.0.0",
+    "read-pkg": "^9.0.1",
     "ts-jest": "^29.2.5",
     "typescript": "^5.6.3",
-    "vite": "^5.4.9",
+    "vite": "^5.4.10",
     "vue": "^3.5.12"
   }
 }
