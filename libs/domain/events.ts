@@ -1,8 +1,8 @@
 import {
   type WatchHandle,
-  DeepReadonly,
+  type DeepReadonly,
+  type UnwrapNestedRefs,
   Ref,
-  UnwrapNestedRefs,
   readonly,
   ref,
   shallowReadonly,
@@ -48,17 +48,17 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
 ): DomainEvent<T, U> {
   if (resolve && !reject) {
     reject = (e: Error) => {
-      console.error(e)
+      throw e
     }
   }
   let version = ref('0')
   const map: Record<
     string,
-    [UnwrapNestedRefs<T>, Function | undefined, Function | undefined, Ref<boolean> | undefined]
+    [DeepReadonly<UnwrapNestedRefs<T>>, Function | undefined, Function | undefined, Ref<boolean> | undefined]
   > = {}
   function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void, resolved?: Ref<boolean>) {
     const newVer = largeNumberIncrease(version.value)
-    map[newVer] = [data, res, rej, resolved]
+    map[newVer] = [readonly(data) as DeepReadonly<UnwrapNestedRefs<T>>, res, rej, resolved]
     version.value = newVer
   }
 
@@ -70,51 +70,32 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
       reject: InferOptReject<U>
     }) => void
   ) => {
-    let handle1: WatchHandle | undefined = undefined
-    const handle2 = watch(version, (newVersion) => {
+    let tmpHandle: WatchHandle | undefined = undefined
+    return watch(version, (newVersion) => {
       if (!map[newVersion]) {
         return
       }
       if (resolve) {
-        handle1 = watch(map[newVersion][3]!, (resolved) => {
+        tmpHandle = watch(map[newVersion][3]!, (resolved) => {
           if (resolved) {
             delete map[newVersion]
-            handle()
+            if (tmpHandle) {
+              tmpHandle()
+            }
           }
         })
+        if (!map[newVersion]) {
+          delete map[newVersion]
+          tmpHandle()
+        }
       }
       cb({
-        data: readonly(map[newVersion][0]) as DeepReadonly<UnwrapNestedRefs<T>>,
+        data: map[newVersion][0],
         version: newVersion,
         resolve: map[newVersion][1] as InferOptResolve<U>,
         reject: map[newVersion][2] as InferOptReject<U>,
       })
     })
-    const handle = () => {
-      if (handle1) {
-        handle1()
-      }
-      handle2()
-    }
-    handle.pause = () => {
-      if (handle1) {
-        handle1.pause()
-      }
-      handle2.pause()
-    }
-    handle.stop = () => {
-      if (handle1) {
-        handle1.stop()
-      }
-      handle2.stop()
-    }
-    handle.resume = () => {
-      if (handle1?.resume) {
-        handle1.resume()
-      }
-      handle2.resume()
-    }
-    return handle as WatchHandle
   }
   return {
     latestVersion: readonly(version),
@@ -144,18 +125,18 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
 ): DomainEvent<T, U> {
   if (resolve && !reject) {
     reject = (e: Error) => {
-      console.error(e)
+      throw e
     }
   }
 
   const eventLifetime: number = 5
   let version = ref('0')
-  const map: Record<string, [UnwrapNestedRefs<T>, Function | undefined, Function | undefined]> = {}
+  const map: Record<string, [DeepReadonly<UnwrapNestedRefs<T>>, Function | undefined, Function | undefined]> = {}
   const alifeEvents: string[] = []
 
   function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void) {
     const newVer = largeNumberIncrease(version.value)
-    map[newVer] = [data, res, rej]
+    map[newVer] = [readonly(data) as DeepReadonly<UnwrapNestedRefs<T>>, res, rej]
     version.value = newVer
     const x = alifeEvents.length - eventLifetime
     if (x > 0) {
@@ -174,7 +155,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   ) => {
     return watch(version, (newVersion) => {
       cb({
-        data: readonly(map[newVersion][0]) as DeepReadonly<UnwrapNestedRefs<T>>,
+        data: map[newVersion][0],
         version: newVersion,
         resolve: map[newVersion][1] as InferOptResolve<U>,
         reject: map[newVersion][2] as InferOptReject<U>,
