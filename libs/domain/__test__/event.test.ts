@@ -9,18 +9,18 @@ it('createChannelEvent 触发事件', async () => {
     return event
   }
   const event = register()
-  const repo = { name: '', version: 0 }
+  const repo = { name: '', version: '0' }
   event.watch(({ data, version }) => {
     repo.name = data.name
     repo.version = version
   })
-  event.trigger({ name: event.data.name })
+  event.trigger({ name: 'wong' })
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(repo.name).toBe('wong')
-  expect(repo.version).toBe(1)
-  event.trigger({ name: event.data.name })
+  expect(repo.version).toBe('1')
+  event.trigger({ name: 'wong' })
   await new Promise((resolve) => setTimeout(resolve, 0))
-  expect(repo.version).toBe(2)
+  expect(repo.version).toBe('2')
 })
 
 it('createChannelEvent 普通函数的回调', () => {

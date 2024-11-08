@@ -6,7 +6,6 @@ import {
   readonly,
   ref,
   shallowReadonly,
-  shallowRef,
   watch,
 } from '@vue/reactivity'
 
@@ -22,11 +21,11 @@ export function createDefaultDestroyedEvent(): DomainDestroyedEvent {
 }
 
 export type DomainEvent<T, U> = {
-  data: DeepReadonly<UnwrapNestedRefs<T>>
+  latestVersion: Ref<string>
   watch: (
     cb: (event: {
       data: DeepReadonly<UnwrapNestedRefs<T>>
-      version: number
+      version: string
       resolve: InferOptResolve<U>
       reject: InferOptReject<U>
     }) => void
@@ -41,7 +40,7 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
   reject?: (e: Error) => void
 ): DomainEvent<T, U>
 export function createChannelEvent<T extends DomainEventArgs, U extends (...args: any[]) => boolean | void>(
-  data: T,
+  _: T,
   resolve?: U,
   reject: (e: Error) => void = (e: Error) => {
     console.error(e)
@@ -52,17 +51,21 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
       console.error(e)
     }
   }
-  const inner = shallowRef(data)
-  let version = ref(0)
+  let version = ref('0')
   const map: Record<
-    number,
+    string,
     [UnwrapNestedRefs<T>, Function | undefined, Function | undefined, Ref<boolean> | undefined]
   > = {}
+  function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void, resolved?: Ref<boolean>) {
+    const newVer = largeNumberIncrease(version.value)
+    map[newVer] = [data, res, rej, resolved]
+    version.value = newVer
+  }
 
   const watchFn = (
     cb: (event: {
       data: DeepReadonly<UnwrapNestedRefs<T>>
-      version: number
+      version: string
       resolve: InferOptResolve<U>
       reject: InferOptReject<U>
     }) => void
@@ -114,17 +117,15 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
     return handle as WatchHandle
   }
   return {
-    data: inner.value,
+    latestVersion: readonly(version),
     watch: watchFn,
     trigger: (data: UnwrapNestedRefs<T>) => {
       if (!resolve) {
-        map[version.value + 1] = [data, undefined, undefined, undefined]
-        version.value++
+        updateEvent(data, undefined, undefined, undefined)
         return undefined as InferOptPromise<U>
       }
       const { promise, resolve: res, reject: rej, resolved } = createExtPromise(resolve, reject as (e: Error) => void)
-      map[version.value + 1] = [data, res, rej, resolved]
-      version.value++
+      updateEvent(data, res, rej, resolved)
       return promise as InferOptPromise<U>
     },
   }
@@ -137,7 +138,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   reject?: (e: Error) => void
 ): DomainEvent<T, U>
 export function createBroadcastEvent<T extends DomainEventArgs, U extends (...args: any[]) => void>(
-  data: T,
+  _: T,
   resolve?: U,
   reject?: (e: Error) => void
 ): DomainEvent<T, U> {
@@ -148,12 +149,12 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   }
 
   const eventLifetime: number = 5
-  const inner = shallowRef(data)
-  let version = ref(0)
-  const map: Record<number, [UnwrapNestedRefs<T>, Function | undefined, Function | undefined]> = {}
-  const alifeEvents: number[] = []
+  let version = ref('0')
+  const map: Record<string, [UnwrapNestedRefs<T>, Function | undefined, Function | undefined]> = {}
+  const alifeEvents: string[] = []
+
   function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void) {
-    const newVer = version.value + 1
+    const newVer = largeNumberIncrease(version.value)
     map[newVer] = [data, res, rej]
     version.value = newVer
     const x = alifeEvents.length - eventLifetime
@@ -166,7 +167,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   const watchFn = (
     cb: (event: {
       data: DeepReadonly<UnwrapNestedRefs<T>>
-      version: number
+      version: string
       resolve: InferOptResolve<U>
       reject: InferOptReject<U>
     }) => void
@@ -181,7 +182,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
     })
   }
   return {
-    data: inner.value,
+    latestVersion: readonly(version),
     watch: watchFn,
     trigger: (data: UnwrapNestedRefs<T>) => {
       if (!resolve) {
@@ -197,7 +198,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
 export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger'>
 
 export function toEventApi<T, U>(event: DomainEvent<T, U>): DomainEventApi<T, U> {
-  return shallowReadonly({ data: event.data, watch: event.watch })
+  return shallowReadonly({ latestVersion: event.latestVersion, watch: event.watch })
 }
 
 function createExtPromise<T extends (...args: any[]) => boolean | void, E extends (...args: any[]) => void>(
@@ -239,4 +240,34 @@ function createExtPromise<T extends (...args: any[]) => boolean | void, E extend
     reject: proxyReject as E,
     promise,
   }
+}
+
+function largeNumberIncrease(num1: string): string {
+  if (+num1 < Number.MAX_SAFE_INTEGER) {
+    return (parseInt(num1) + 1).toString()
+  }
+
+  // 反转字符串以便从最低位开始相加
+  let str1 = num1.split('').reverse().join('')
+  let str2 = '1'
+
+  const maxLength = Math.max(str1.length, str2.length)
+  let carry = 0
+  let result = []
+
+  for (let i = 0; i < maxLength; i++) {
+    const digit1 = i < str1.length ? parseInt(str1[i], 10) : 0
+    const digit2 = i < str2.length ? parseInt(str2[i], 10) : 0
+
+    const sum = digit1 + digit2 + carry
+    result.push(sum % 10) // 当前位的结果
+    carry = Math.floor(sum / 10) // 计算进位
+  }
+
+  if (carry > 0) {
+    result.push(carry)
+  }
+
+  // 反转结果并转换为字符串
+  return result.reverse().join('')
 }
