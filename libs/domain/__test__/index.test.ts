@@ -26,10 +26,10 @@ it('event + agg 触发事件', async () => {
   })
 
   const saved = ref(false)
-  agg.api.events.save.watch(({ data, callback }) => {
+  agg.api.events.save.watch(({ data, resolve }) => {
     saved.value = true
     expect(data.name).toBe('bob')
-    callback()
+    resolve()
   })
   agg.api.actions.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 1))
@@ -129,4 +129,50 @@ it('event中的data应该脱离响应式', async () => {
   agg.api.actions.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 1))
   expect(saved.value).toBe(true)
+})
+
+it('聚合等待初始化', async () => {
+  const agg = createAgg(() => {
+    const isReady = ref(false)
+    type UserInfo = { name: string; age: number }
+    let user = ref<UserInfo>()
+    const initStatedEvent = createEvent({}, (data: UserInfo) => {
+      console.error('got data', data)
+      user.value = data
+      isReady.value = true
+    })
+    async function untilReady() {
+      if (isReady.value) {
+        return
+      }
+      await initStatedEvent.trigger({})
+      if (!isReady.value) {
+        throw Error()
+      }
+    }
+    return {
+      states: {
+        user,
+      },
+      actions: {
+        async init() {
+          await untilReady()
+        },
+        async getUser() {
+          await untilReady()
+          return user.value
+        },
+      },
+      events: {
+        initStated: initStatedEvent,
+      },
+    }
+  })
+
+  agg.api.events.initStated.watch(({ resolve }) => {
+    resolve({ name: 'eric', age: 18 })
+  })
+  await agg.api.actions.init()
+  expect(agg.api.states.user.value?.name).toEqual('eric')
+  expect(agg.api.states.user.value?.age).toEqual(18)
 })

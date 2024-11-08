@@ -206,7 +206,7 @@ describe('测试AggApi', () => {
 })
 
 describe('', () => {
-  it('createAgg 基本成员变量数值验证', () => {
+  it('createAgg 基本成员变量、方法验证', () => {
     const agg = createAgg(() => {
       return {
         states: {
@@ -223,7 +223,7 @@ describe('', () => {
     expect(agg.api.actions.log).toBeInstanceOf(Function)
   })
 
-  it('createUnmountableAgg', () => {
+  it('createUnmountableAgg 基本成员变量、方法验证', () => {
     const agg = createUnmountableAgg(1, () => {
       const a = ref('a')
       watch(a, () => {})
