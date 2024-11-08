@@ -17,7 +17,7 @@ export type DomainEventArgs = { [key: string]: any }
 export type DomainDestroyedEvent = DomainEvent<{}, undefined>
 export type DomainDestroyedEventApi = DomainEventApi<{}, undefined>
 export function createDefaultDestroyedEvent(): DomainDestroyedEvent {
-  return createChannelEvent({})
+  return createBroadcastEvent({})
 }
 
 export type DomainEvent<T, U> = {
