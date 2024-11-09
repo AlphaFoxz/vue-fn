@@ -15,6 +15,7 @@ import {
   DomainEvent,
   toEventApi,
 } from './events'
+import { nextTick } from 'vue'
 
 export type ReadonlyStates<STATES> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -136,7 +137,7 @@ export function createUnmountableAgg<
   STATES extends { [k: string]: object },
   ACTIONS extends { [k: string]: Function },
   EVENTS extends { [name: string]: DomainEvent<any, any> } & { destroyed?: DomainDestroyedEvent },
-  DESTROY extends Function
+  DESTROY extends (...args: any[]) => void
 >(
   id: ID,
   init: (context: {
@@ -169,14 +170,21 @@ export function createUnmountableAgg<
     destroyedEvent = events.destroyed
   }
 
-  const destroy = (
-    result.destroy
-      ? result.destroy
-      : () => {
-          scope.stop()
-          destroyedEvent?.trigger({})
+  let destroy = result.destroy as DESTROY
+  if (!destroy) {
+    destroy = (() => {
+      scope.stop()
+      destroyedEvent?.trigger({})
+      nextTick(() => {
+        for (const k in events) {
+          const event = events[k]
+          for (const handle of event.watchHandles) {
+            handle.stop()
+          }
         }
-  ) as DESTROY
+      })
+    }) as DESTROY
+  }
   return {
     id,
     api: createUnmountableAggApi({

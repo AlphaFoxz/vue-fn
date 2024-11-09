@@ -1,6 +1,6 @@
 import { it, expect } from '@jest/globals'
 import { createBroadcastEvent, createChannelEvent } from '../events'
-import { ref } from '@vue/reactivity'
+import { ref, reactive } from '@vue/reactivity'
 
 it('createChannelEvent 触发事件', async () => {
   function register() {
@@ -22,7 +22,7 @@ it('createChannelEvent 触发事件', async () => {
   expect(repo.version).toBe('2')
 })
 
-it('createChannelEvent 普通函数的回调', () => {
+it('createChannelEvent 函数的回调', () => {
   let succeed = false
   function register() {
     const name = ref('wong')
@@ -33,9 +33,12 @@ it('createChannelEvent 普通函数的回调', () => {
     return event
   }
   const event = register()
-  event.watch(({ data }) => {
+  event.watch(({ data, resolve, reject }) => {
     if (data.name === 'Andy') {
       succeed = true
+      resolve()
+    } else {
+      reject(new Error('error'))
     }
   })
   event.trigger({ name: 'Andy' })
@@ -43,10 +46,12 @@ it('createChannelEvent 普通函数的回调', () => {
 })
 
 it('createChannelEvent Promise的回调', async () => {
+  const listenerCounter = reactive<string[]>([])
   let succeed = false
   function createInitEvent() {
     const name = ref('wong')
     const event = createChannelEvent({ name }, (b: boolean) => {
+      listenerCounter.push('')
       succeed = b
       const start = Date.now()
       while (Date.now() - start < 10) {
@@ -56,25 +61,26 @@ it('createChannelEvent Promise的回调', async () => {
     })
     return event
   }
-  const watchedEventsCounter = ref(0)
+  const watchedEventsCounter = reactive<string[]>([])
   const initEvent = createInitEvent()
   initEvent.watch(({ data, resolve }) => {
-    watchedEventsCounter.value++
+    watchedEventsCounter.push('')
     if (data.name === 'Andy') {
       succeed = true
     }
     resolve(true)
   })
   initEvent.watch(({ data, resolve }) => {
-    watchedEventsCounter.value++
+    watchedEventsCounter.push('')
     if (data.name === 'Andy') {
       succeed = true
     }
     resolve(true)
   })
   await initEvent.trigger({ name: 'Andy' })
-  expect(succeed).toBeTruthy()
-  expect(watchedEventsCounter.value).toBe(1)
+  expect(succeed).toBe(true)
+  expect(listenerCounter.length).toBe(1)
+  expect(watchedEventsCounter.length).toBe(1)
 })
 
 it('createBroadcastEvent Promise的回调', async () => {

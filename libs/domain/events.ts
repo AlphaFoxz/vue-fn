@@ -1,4 +1,5 @@
 import {
+  type Reactive,
   type WatchHandle,
   type DeepReadonly,
   type UnwrapNestedRefs,
@@ -7,6 +8,7 @@ import {
   ref,
   shallowReadonly,
   watch,
+  reactive,
 } from '@vue/reactivity'
 
 type InferOptResolve<T> = T extends Function ? T : undefined
@@ -22,6 +24,7 @@ export function createDefaultDestroyedEvent(): DomainDestroyedEvent {
 
 export type DomainEvent<T, U> = {
   latestVersion: Ref<string>
+  watchHandles: Reactive<WatchHandle[]>
   watch: (
     cb: (event: {
       data: DeepReadonly<UnwrapNestedRefs<T>>
@@ -50,6 +53,7 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
     string,
     [DeepReadonly<UnwrapNestedRefs<T>>, Function | undefined, Function | undefined, Ref<boolean> | undefined]
   > = {}
+  const watchHandles = reactive<WatchHandle[]>([])
   function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void, resolved?: Ref<boolean>) {
     const newVer = largeNumberIncrease(version.value)
     map[newVer] = [readonly(data) as DeepReadonly<UnwrapNestedRefs<T>>, res, rej, resolved]
@@ -65,7 +69,7 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
     }) => void
   ) => {
     let tmpHandle: WatchHandle | undefined = undefined
-    return watch(version, (newVersion) => {
+    const handle = watch(version, (newVersion) => {
       if (!map[newVersion]) {
         return
       }
@@ -88,10 +92,13 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
         reject: map[newVersion][2] as InferOptReject<U>,
       })
     })
+    watchHandles.push(handle)
+    return handle
   }
   return {
     latestVersion: readonly(version),
     watch: watchFn,
+    watchHandles,
     trigger: (data: UnwrapNestedRefs<T>) => {
       if (!resolve) {
         updateEvent(data, undefined, undefined, undefined)
@@ -124,6 +131,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   const eventLifetime: number = 5
   let version = ref('0')
   const map: Record<string, [DeepReadonly<UnwrapNestedRefs<T>>, Function | undefined, Function | undefined]> = {}
+  const watchHandles = reactive<WatchHandle[]>([])
   const alifeEvents: string[] = []
 
   function updateEvent(data: UnwrapNestedRefs<T>, res?: U, rej?: (e: Error) => void) {
@@ -145,7 +153,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
       reject: InferOptReject<U>
     }) => void
   ) => {
-    return watch(version, (newVersion) => {
+    const handle = watch(version, (newVersion) => {
       cb({
         data: map[newVersion][0],
         version: newVersion,
@@ -153,10 +161,13 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
         reject: map[newVersion][2] as InferOptReject<U>,
       })
     })
+    watchHandles.push(handle)
+    return handle
   }
   return {
     latestVersion: readonly(version),
     watch: watchFn,
+    watchHandles,
     trigger: (data: UnwrapNestedRefs<T>) => {
       if (!callback) {
         updateEvent(data, undefined, undefined)
@@ -168,10 +179,10 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   }
 }
 
-export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger'>
+export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger' | 'watchHandles'>
 
 export function toEventApi<T, U>(event: DomainEvent<T, U>): DomainEventApi<T, U> {
-  return shallowReadonly({ latestVersion: event.latestVersion, watch: event.watch })
+  return shallowReadonly({ latestVersion: event.latestVersion, watch: event.watch, watchHandles: event.watchHandles })
 }
 
 function createExtPromise<T extends (...args: any[]) => boolean | void, E extends (...args: any[]) => void>(
