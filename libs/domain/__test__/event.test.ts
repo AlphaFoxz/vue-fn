@@ -5,21 +5,20 @@ import { ref } from '@vue/reactivity'
 it('createChannelEvent 触发事件', async () => {
   function register() {
     const name = ref('wong')
-    const event = createChannelEvent({ name })
+    const event = createChannelEvent({ name }, () => true)
     return event
   }
   const event = register()
   const repo = { name: '', version: '0' }
-  event.watch(({ data, version }) => {
+  event.watch(({ data, version, resolve }) => {
     repo.name = data.name
     repo.version = version
+    resolve()
   })
-  event.trigger({ name: 'wong' })
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await event.trigger({ name: 'wong' })
   expect(repo.name).toBe('wong')
   expect(repo.version).toBe('1')
-  event.trigger({ name: 'wong' })
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await event.trigger({ name: 'wong' })
   expect(repo.version).toBe('2')
 })
 

@@ -1,5 +1,5 @@
 import { expect, it } from '@jest/globals'
-import { createAgg, createChannelEvent, createUnmountableAgg } from '..'
+import { createAgg, createBroadcastEvent, createChannelEvent, createUnmountableAgg } from '..'
 import { ref } from 'vue'
 
 it('event + agg 触发事件', async () => {
@@ -62,7 +62,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
     const name = ref('')
     let age = 0
     const watchName = ref(name.value)
-    const loadedEvent = createChannelEvent({ name, age })
+    const loadedEvent = createBroadcastEvent({ name, age })
     loadedEvent.watch(({ data }) => {
       watchName.value = data.name
     })
