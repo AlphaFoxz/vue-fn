@@ -33,20 +33,14 @@ export type DomainEvent<T, U> = {
   trigger: (data: UnwrapNestedRefs<T>) => InferOptPromise<U>
 }
 
-export function createChannelEvent<T extends DomainEventArgs>(data: T): DomainEvent<T, undefined>
-export function createChannelEvent<T extends DomainEventArgs, U extends (...args: any[]) => boolean | void>(
-  data: T,
-  resolve?: U,
-  reject?: (e: Error) => void
-): DomainEvent<T, U>
 export function createChannelEvent<T extends DomainEventArgs, U extends (...args: any[]) => boolean | void>(
   _: T,
-  resolve?: U,
+  resolve: U,
   reject: (e: Error) => void = (e: Error) => {
     console.error(e)
   }
 ): DomainEvent<T, U> {
-  if (resolve && !reject) {
+  if (!reject) {
     reject = (e: Error) => {
       throw e
     }
@@ -75,19 +69,17 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
       if (!map[newVersion]) {
         return
       }
-      if (resolve) {
-        tmpHandle = watch(map[newVersion][3]!, (resolved) => {
-          if (resolved) {
-            delete map[newVersion]
-            if (tmpHandle) {
-              tmpHandle()
-            }
-          }
-        })
-        if (!map[newVersion]) {
+      tmpHandle = watch(map[newVersion][3]!, (resolved) => {
+        if (resolved) {
           delete map[newVersion]
-          tmpHandle()
+          if (tmpHandle) {
+            tmpHandle()
+          }
         }
+      })
+      if (!map[newVersion]) {
+        delete map[newVersion]
+        tmpHandle()
       }
       cb({
         data: map[newVersion][0],
@@ -115,17 +107,17 @@ export function createChannelEvent<T extends DomainEventArgs, U extends (...args
 export function createBroadcastEvent<T extends DomainEventArgs>(data: T): DomainEvent<T, undefined>
 export function createBroadcastEvent<T extends DomainEventArgs, U extends (...args: any[]) => void>(
   data: T,
-  resolve?: U,
-  reject?: (e: Error) => void
+  callback?: U,
+  error?: (e: Error) => void
 ): DomainEvent<T, U>
 export function createBroadcastEvent<T extends DomainEventArgs, U extends (...args: any[]) => void>(
   _: T,
-  resolve?: U,
-  reject?: (e: Error) => void
+  callback?: U,
+  error?: (e: Error) => void
 ): DomainEvent<T, U> {
-  if (resolve && !reject) {
-    reject = (e: Error) => {
-      throw e
+  if (callback && !error) {
+    error = (e: Error) => {
+      console.error(e)
     }
   }
 
@@ -166,11 +158,11 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
     latestVersion: readonly(version),
     watch: watchFn,
     trigger: (data: UnwrapNestedRefs<T>) => {
-      if (!resolve) {
+      if (!callback) {
         updateEvent(data, undefined, undefined)
         return undefined as InferOptPromise<U>
       }
-      updateEvent(data, resolve, reject)
+      updateEvent(data, callback, error)
       return undefined as InferOptPromise<U>
     },
   }

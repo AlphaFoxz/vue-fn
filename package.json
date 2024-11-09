@@ -1,7 +1,7 @@
 {
   "name": "vue-fn",
   "version": "0.0.3-aplha.11",
-  "description": "",
+  "description": "一个 vue3 的响应式函数工具包",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -16,6 +16,7 @@
     "url": "https://github.com/AlphaFoxz"
   },
   "license": "UNLICENSED",
+  "homepage": "https://alphafoxz.github.io/vue-fn/zh/",
   "repository": "https://github.com/AlphaFoxz/vue-fn",
   "scripts": {
     "build": "pnpm build:pack && pnpm verify && pnpm test && pnpm build:sync",
