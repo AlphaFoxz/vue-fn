@@ -179,7 +179,7 @@ export function createBroadcastEvent<T extends DomainEventArgs, U extends (...ar
   }
 }
 
-export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger' | 'watchHandles'>
+export type DomainEventApi<T, U> = Omit<Readonly<DomainEvent<T, U>>, 'trigger'>
 
 export function toEventApi<T, U>(event: DomainEvent<T, U>): DomainEventApi<T, U> {
   return shallowReadonly({ latestVersion: event.latestVersion, watch: event.watch, watchHandles: event.watchHandles })

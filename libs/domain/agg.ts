@@ -31,14 +31,14 @@ export type ReadonlyEvents<EVENTS> = Readonly<{
       //   EVENTS[K] extends DomainEvent<infer T1, unknown> ? T1 : never,
       //   EVENTS[K] extends DomainEvent<unknown, infer T2> ? T2 : never
       // >
-      Omit<EVENTS[K], 'trigger'>
+      Omit<EVENTS[K], 'trigger' | 'watchHandles'>
     >
   >
 }>
 
 export type ReadonlyUnmountableEvents<EVENTS> = Readonly<
   {
-    [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<Omit<EVENTS[K], 'trigger'>>>
+    [K in keyof EVENTS]: DeepReadonly<UnwrapNestedRefs<Omit<EVENTS[K], 'trigger' | 'watchHandles'>>>
   } & { destroyed: DeepReadonly<UnwrapNestedRefs<DomainDestroyedEventApi>> }
 >
 
