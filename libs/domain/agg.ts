@@ -15,7 +15,6 @@ import {
   DomainEvent,
   toEventApi,
 } from './events'
-import { nextTick } from 'vue'
 
 export type ReadonlyStates<STATES> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -175,7 +174,7 @@ export function createUnmountableAgg<
     destroy = (() => {
       scope.stop()
       destroyedEvent?.trigger({})
-      nextTick(() => {
+      setTimeout(() => {
         for (const k in events) {
           const event = events[k]
           for (const handle of event.watchHandles) {
