@@ -9,8 +9,7 @@ import {
   shallowRef,
   computed,
   shallowReactive,
-  triggerRef,
-} from 'vue'
+} from '@vue/reactivity'
 
 export type DomainEventData = { [key: string]: any }
 
@@ -133,7 +132,6 @@ export function createBroadcastEvent<DATA extends DomainEventData>(_: DATA) {
       alifeEvents.splice(0, x)
     }
     version.value = newVer
-    triggerRef(version)
     alifeEvents.push(newVer)
   }
 

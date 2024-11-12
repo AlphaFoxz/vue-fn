@@ -1,4 +1,4 @@
-import { type ShallowRef, shallowRef } from '@vue/reactivity'
+import { type ShallowRef, shallowRef } from 'vue'
 
 export type TimeoutApi = {
   resolve: () => void

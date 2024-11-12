@@ -1,12 +1,12 @@
 import { expect, it } from '@jest/globals'
-import { createAgg, createBroadcastEvent, createChannelEvent, createUnmountableAgg } from '..'
+import { createAgg, createBroadcastEvent, createRequestEvent, createUnmountableAgg } from '..'
 import { ref } from 'vue'
 
 it('event + agg 触发事件', async () => {
   const agg = createUnmountableAgg(1, () => {
     const version = ref(0)
     const name = ref('unknown')
-    const saveEvent = createChannelEvent({ name }, () => {
+    const saveEvent = createRequestEvent({ name }, () => {
       version.value++
       return true
     })
@@ -17,7 +17,7 @@ it('event + agg 触发事件', async () => {
       actions: {
         setName(n: string) {
           name.value = n
-          saveEvent.trigger({ name: name.value })
+          saveEvent.publishRequest({ name: name.value })
         },
       },
       events: {
@@ -27,10 +27,10 @@ it('event + agg 触发事件', async () => {
   })
 
   const saved = ref(false)
-  agg.api.events.save.watch(({ data, resolve }) => {
+  agg.api.events.save.watchPublishRequest(({ data, reply }) => {
     saved.value = true
     expect(data.name).toBe('bob')
-    resolve()
+    reply()
   })
   agg.api.actions.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 0))
@@ -48,7 +48,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
   })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const isDestroyed = ref(false)
-  agg.api.events.destroyed.watch(() => {
+  agg.api.events.destroyed.watchPublish(() => {
     isDestroyed.value = true
   })
   agg.api.destroy()
@@ -63,7 +63,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
     let age = 0
     const watchName = ref(name.value)
     const loadedEvent = createBroadcastEvent({ name, age })
-    loadedEvent.watch(({ data }) => {
+    loadedEvent.toApi().watchPublish(({ data }) => {
       watchName.value = data.name
     })
     return {
@@ -73,7 +73,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
       actions: {
         load(n: string) {
           name.value = n
-          loadedEvent.trigger({ name: name.value, age })
+          loadedEvent.publish({ name: name.value, age })
         },
       },
       events: {
@@ -96,7 +96,7 @@ it('event中的data应该脱离响应式', async () => {
     const version = ref(0)
     const name = ref('unknown')
     const age = ref(0)
-    const saveEvent = createChannelEvent({ name, age }, () => {
+    const saveEvent = createRequestEvent({ name, age }, () => {
       version.value++
       return true
     })
@@ -108,7 +108,7 @@ it('event中的data应该脱离响应式', async () => {
       actions: {
         setName(n: string) {
           name.value = n
-          saveEvent.trigger({ name: name.value, age: age.value })
+          saveEvent.publishRequest({ name: name.value, age: age.value })
         },
         setAge(n: number) {
           age.value = n
@@ -121,11 +121,10 @@ it('event中的data应该脱离响应式', async () => {
   })
 
   const saved = ref(false)
-  agg.api.events.save.watch(async ({ data }) => {
+  agg.api.events.save.watchPublishRequest(({ data }) => {
     saved.value = true
     expect(data.name).toBe('bob')
     agg.api.actions.setAge(18)
-    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(data.age).toBe(0)
   })
   agg.api.actions.setName('bob')
@@ -138,7 +137,7 @@ it('聚合等待初始化', async () => {
     const isReady = ref(false)
     type UserInfo = { name: string; age: number }
     let user = ref<UserInfo>()
-    const initStatedEvent = createChannelEvent({}, (data: UserInfo) => {
+    const initStatedEvent = createRequestEvent({}, (data: UserInfo) => {
       user.value = data
       isReady.value = true
       return true
@@ -147,7 +146,7 @@ it('聚合等待初始化', async () => {
       if (isReady.value) {
         return
       }
-      await initStatedEvent.trigger({})
+      await initStatedEvent.publishRequest({})
       if (!isReady.value) {
         throw Error()
       }
@@ -172,13 +171,13 @@ it('聚合等待初始化', async () => {
   })
 
   const listenCounter = ref(0)
-  agg.api.events.initStated.watch(({ resolve }) => {
+  agg.api.events.initStated.watchPublishRequest(({ reply }) => {
     listenCounter.value++
-    resolve({ name: 'eric', age: 18 })
+    reply({ name: 'eric', age: 18 })
   })
-  agg.api.events.initStated.watch(({ resolve }) => {
+  agg.api.events.initStated.watchPublishRequest(({ reply }) => {
     listenCounter.value++
-    resolve({ name: 'eric', age: 18 })
+    reply({ name: 'eric', age: 18 })
   })
   await agg.api.actions.init()
   expect(agg.api.states.user.value?.name).toEqual('eric')

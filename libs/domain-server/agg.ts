@@ -6,7 +6,7 @@ import {
   EffectScope,
   effectScope,
   onScopeDispose,
-} from 'vue'
+} from '@vue/reactivity'
 import {
   type DomainBroadcastEvent,
   type DomainDestroyedEventApi,
