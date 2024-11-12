@@ -6,6 +6,7 @@
   ],
   "exclude": [
     "**/__test__",
+    "**/__tests__",
   ],
   "compilerOptions": {
     "composite": true,

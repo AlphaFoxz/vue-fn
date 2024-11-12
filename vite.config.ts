@@ -14,6 +14,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
+      external: ['vue', '@vue/reactivity'],
       input: parseModules(),
       output: {
         minifyInternalExports: true,

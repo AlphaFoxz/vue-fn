@@ -1,6 +1,6 @@
 {
   "name": "vue-fn",
-  "version": "0.0.3-aplha.12",
+  "version": "0.0.3-aplha.13",
   "description": "一个 vue3 的响应式函数工具包",
   "type": "module",
   "sideEffects": false,
@@ -26,16 +26,15 @@
     "test": "npx jest"
   },
   "peerDependencies": {
+    "@vue/reactivity": ">=3.5.0",
     "vue": ">=3.5.0"
-  },
-  "dependencies": {
-    "@vue/reactivity": "^3.5.12"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.9.0",
+    "@vue/reactivity": "^3.5.12",
     "jest": "^29.7.0",
     "ncp": "^2.0.0",
     "read-pkg": "^9.0.1",
