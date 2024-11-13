@@ -8,7 +8,6 @@ it('event + agg 触发事件', async () => {
     const name = ref('unknown')
     const saveEvent = createRequestEvent({ name }, () => {
       version.value++
-      return true
     })
     return {
       states: {
@@ -98,7 +97,6 @@ it('event中的data应该脱离响应式', async () => {
     const age = ref(0)
     const saveEvent = createRequestEvent({ name, age }, () => {
       version.value++
-      return true
     })
     return {
       states: {
@@ -140,7 +138,6 @@ it('聚合等待初始化', async () => {
     const initStatedEvent = createRequestEvent({}, (data: UserInfo) => {
       user.value = data
       isReady.value = true
-      return true
     })
     async function untilReady() {
       if (isReady.value) {
@@ -187,7 +184,7 @@ it('聚合等待初始化', async () => {
 
 it('聚合onCreated创建', async () => {
   const agg = createAgg((context) => {
-    const startInitEvent = createRequestEvent({}, () => true)
+    const startInitEvent = createRequestEvent({}, () => {})
     context.onBeforeInitialize(async () => {
       await startInitEvent.publishRequest({})
     })

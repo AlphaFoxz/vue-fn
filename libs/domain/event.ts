@@ -9,13 +9,11 @@ import {
   computed,
   shallowReactive,
 } from 'vue'
-import { createExternalPromise } from './common'
+import { createPromiseCallback } from './common'
 
 export type DomainEventData = { [key: string]: any }
 
-export type DomainRequestEventCallback = (...args: any[]) => boolean
-
-export type DomainRequestEventOnError = (...args: any[]) => boolean
+export type DomainRequestEventCallback = <T>(...args: any[]) => { value?: T; error?: Error } | void
 
 export type DomainEvent<DATA extends DomainEventData, CALLBACK extends DomainRequestEventCallback> =
   | DomainRequestEvent<DATA, CALLBACK>
@@ -31,12 +29,8 @@ export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<type
 
 export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventCallback>(
   _: DATA,
-  reply: REPLY,
-  onError?: DomainRequestEventOnError
+  reply: REPLY
 ) {
-  if (!onError) {
-    onError = ((_: Error) => true) as DomainRequestEventOnError
-  }
   let version = shallowRef('0')
   const map: Record<
     string,
@@ -94,7 +88,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   }
 
   const publishFn = async (data: UnwrapNestedRefs<DATA>) => {
-    const { promise, resolve: res, resolved, error } = createExternalPromise(reply, onError as (e: Error) => boolean)
+    const { promise, callback: res, resolved, error } = createPromiseCallback(reply)
     updateEvent(data, res, resolved, error)
     await promise
   }

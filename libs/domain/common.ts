@@ -1,47 +1,72 @@
 import { type Ref, ref } from 'vue'
 
-export function createExternalPromise<
-  RESOLVE extends (...args: any[]) => boolean,
-  REJECT extends (e: Error) => boolean
+type InferPromiseResult<T extends (...args: any[]) => any> = Exclude<ReturnType<T>, Error> extends
+  | undefined
+  | null
+  | void
+  | unknown
+  ? { success: boolean; value: undefined; error?: Error }
+  : { success: boolean; value: ReturnType<T>['value']; error?: Error }
+
+export type Result<T> = { success: boolean; error?: Error; value?: T }
+
+export function createPromiseCallback<
+  V,
+  CALLBACK extends (...args: any[]) => { value?: V; error?: Error } | void,
+  R = ReturnType<CALLBACK>
 >(
-  resolve: RESOLVE = (() => true) as RESOLVE,
-  reject: REJECT = ((_: Error) => true) as REJECT
-): { promise: Promise<void>; resolve: RESOLVE; reject: REJECT; resolved: Ref<boolean>; error: Ref<Error | undefined> } {
+  callback: CALLBACK
+): {
+  promise: Promise<InferPromiseResult<CALLBACK>>
+  callback: CALLBACK
+  resolved: Ref<boolean>
+  error: Ref<Error | undefined>
+} {
   const errorRef = ref<Error>()
+  let result: Result<V>
   const resolvedRef = ref(false)
-  let resolveEffect: Function
-  const proxyResolve = new Proxy(resolve, {
-    apply: function (target: RESOLVE, _thisArg: any, argumentsList: any[]) {
-      ;(resolveEffect as any)()
-      const result = target(...argumentsList)
-      if (result) {
-        resolvedRef.value = true
+  let resolveEffect: Function = () => {}
+  const proxyResolve = new Proxy(callback, {
+    apply: function (target: CALLBACK, _thisArg: any, argumentsList: any[]) {
+      let r = target(...argumentsList)
+      result = r as R & { success: boolean }
+      if (r === undefined || Object.keys(r).length === 0) {
+        result = { success: true } as R & { success: boolean }
+      } else if (r.error) {
+        errorRef.value = r.error
+        result.success = false
+      } else if (r.value) {
+        result.success = true
       }
+      if (result.success) {
+        resolvedRef.value = true
+        errorRef.value = undefined
+      }
+      resolveEffect(result)
       return result
     },
-  })
-  let rejectEffect: Function
-  let proxyReject = new Proxy(reject, {
-    apply: function (target: REJECT, _thisArg: any, argumentsList: [Error]) {
-      ;(rejectEffect as any)(...argumentsList)
-      errorRef.value = argumentsList[0]
-      return target(...argumentsList)
-    },
-  })
-  const promise = new Promise<void>((res, rej) => {
+  }) as CALLBACK
+  const promise = new Promise<InferPromiseResult<CALLBACK>>((res, rej) => {
+    if (resolvedRef.value) {
+      res(result as InferPromiseResult<CALLBACK>)
+      return
+    } else if (errorRef.value) {
+      rej(errorRef.value)
+      return
+    }
     resolveEffect = () => {
-      res()
+      if (resolvedRef.value) {
+        res(result as InferPromiseResult<CALLBACK>)
+        return
+      } else if (errorRef.value) {
+        rej(errorRef.value)
+        return
+      }
     }
-
-    rejectEffect = (e: Error) => {
-      rej(e)
-    }
-    return { resolve, reject }
   })
   return {
     promise,
-    resolve: proxyResolve,
-    reject: proxyReject,
+    callback: proxyResolve,
     resolved: resolvedRef,
     error: errorRef,
   }

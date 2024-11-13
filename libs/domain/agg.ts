@@ -17,7 +17,7 @@ import {
   DomainEvent,
   DomainRequestEvent,
 } from './event'
-import { createExternalPromise } from './common'
+import { type Result, createPromiseCallback } from './common'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -42,7 +42,7 @@ type CustomerActionRecords<T> = keyof T extends never ? {} : Record<string, Func
 type CustomerEventRecords<T> = keyof T extends never
   ? {}
   : { [K in keyof T]: T[K] extends DomainRequestEvent<any, any> | DomainBroadcastEvent<any> ? T[K] : never }
-type DestroyFunction = (...args: any[]) => void
+export type DomainDestroyFunction = (...args: any[]) => void
 
 export type DomainStatesApi<STATES extends CustomerStateRecords<any>> = Readonly<{
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
@@ -80,7 +80,7 @@ export type DomainUnmountableAggApi<
   states: DomainStatesApi<STATES>
   actions: DomainActionsApi<ACTIONS>
   events: DomainUnmountableEventsApi<EVENTS>
-  destroy: DestroyFunction
+  destroy: DomainDestroyFunction
 }>
 
 export type DomainAggApi<
@@ -101,7 +101,7 @@ export function createUnmountableAggApi<
   states: STATES
   actions: ACTIONS
   events: EVENTS
-  destroy: DestroyFunction
+  destroy: DomainDestroyFunction
 }): DomainUnmountableAggApi<STATES, ACTIONS, EVENTS> {
   return createAggApiContent(option) as unknown as DomainUnmountableAggApi<STATES, ACTIONS, EVENTS>
 }
@@ -114,7 +114,7 @@ export function createAggApi<
   states: STATES
   actions: ACTIONS
   events: EVENTS
-  destroy: DestroyFunction
+  destroy: DomainDestroyFunction
 }): DomainAggApi<STATES, ACTIONS, EVENTS> {
   const apiContent = createAggApiContent(option)
   return shallowReadonly({
@@ -132,12 +132,12 @@ function createAggApiContent<
   states: STATES
   actions: ACTIONS
   events: EVENTS
-  destroy: DestroyFunction
+  destroy: DomainDestroyFunction
 }): {
   states: DomainStatesApi<STATES>
   actions: DomainActionsApi<ACTIONS>
   events: DomainEventsApi<EVENTS>
-  destroy: DestroyFunction
+  destroy: DomainDestroyFunction
 } {
   const optionStates = option.states as Record<string, object>
   for (const k of Object.keys(option.states)) {
@@ -189,17 +189,17 @@ export function createUnmountableAgg<
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
     initialized: ComputedRef<boolean>
-    untilInitialized: Promise<void>
+    untilInitialized: Promise<Result<undefined>>
   }) => {
     states?: STATES
     actions?: ACTIONS
     events?: EVENTS
-    destroy?: DestroyFunction
+    destroy?: DomainDestroyFunction
   }
 ): DomainUnmountableAgg<ID, STATES, ACTIONS, EVENTS> {
   const initialized = ref(false)
   const beforeInitializeTasks = [] as (() => void)[]
-  const { resolve: resolveInitialize, promise: untilInitialized } = createExternalPromise()
+  const { callback: initialize, promise: untilInitialized } = createPromiseCallback(() => {})
   const scope = effectScope()
   const result = scope.run(() =>
     init({
@@ -218,8 +218,8 @@ export function createUnmountableAgg<
     })
   )!
   Promise.all(beforeInitializeTasks).then(() => {
+    initialize()
     initialized.value = true
-    resolveInitialize()
   })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
@@ -232,7 +232,7 @@ export function createUnmountableAgg<
     destroyedEvent = eventsExt.destroyed
   }
 
-  let destroy = result.destroy as DestroyFunction
+  let destroy = result.destroy as DomainDestroyFunction
   if (!destroy) {
     destroy = (() => {
       destroyedEvent?.publish({})
@@ -243,7 +243,7 @@ export function createUnmountableAgg<
         }
       }
       scope.stop()
-    }) as DestroyFunction
+    }) as DomainDestroyFunction
   }
   return {
     id,
@@ -265,7 +265,7 @@ export function createAgg<
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
     initialized: ComputedRef<boolean>
-    untilInitialized: Promise<void>
+    untilInitialized: Promise<Result<undefined>>
   }) => {
     states?: STATES
     actions?: ACTIONS
@@ -274,7 +274,7 @@ export function createAgg<
 ): DomainAgg<STATES, ACTIONS, EVENTS> {
   const initialized = ref(false)
   const beforeInitializeTasks = [] as (() => void)[]
-  const { resolve: resolveInitialize, promise: untilInitialized } = createExternalPromise()
+  const { callback: initialize, promise: untilInitialized } = createPromiseCallback(() => {})
   const result = init({
     onCreated(fn: () => void) {
       Promise.resolve().then(fn)
@@ -286,8 +286,8 @@ export function createAgg<
     untilInitialized,
   })
   Promise.all(beforeInitializeTasks).then(() => {
+    initialize()
     initialized.value = true
-    resolveInitialize()
   })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS

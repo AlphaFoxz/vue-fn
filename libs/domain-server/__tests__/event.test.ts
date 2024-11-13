@@ -5,7 +5,7 @@ import { ref, reactive } from '@vue/reactivity'
 it('createChannelEvent 触发事件', async () => {
   function register() {
     const name = ref('wong')
-    const event = createRequestEvent({ name }, () => true)
+    const event = createRequestEvent({ name }, () => {})
     return event
   }
   const event = register()
@@ -28,7 +28,6 @@ it('createChannelEvent 函数的回调', async () => {
     const name = ref('wong')
     const event = createRequestEvent({ name }, () => {
       succeed = true
-      return true
     })
     return event
   }
@@ -58,7 +57,6 @@ it('createChannelEvent Promise的回调', async () => {
       while (Date.now() - start < 10) {
         // 运行10ms
       }
-      return true
     })
     return event
   }
