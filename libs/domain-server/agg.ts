@@ -257,9 +257,3 @@ export function createAgg<
     }),
   }
 }
-
-const agg = createUnmountableAgg(1, () => {
-  return {}
-})
-
-agg.api.events.destroyed.watchPublish(() => {})
