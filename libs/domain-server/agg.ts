@@ -6,6 +6,9 @@ import {
   EffectScope,
   effectScope,
   onScopeDispose,
+  ComputedRef,
+  computed,
+  ref,
 } from '@vue/reactivity'
 import {
   type DomainBroadcastEvent,
@@ -13,7 +16,8 @@ import {
   createBroadcastEvent,
   DomainEvent,
   DomainRequestEvent,
-} from './events'
+} from './event'
+import { createExternalPromise } from './common'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -182,6 +186,10 @@ export function createUnmountableAgg<
   init: (context: {
     getCurrentScope: () => EffectScope
     onScopeDispose: (fn: () => void, failSilently?: boolean) => void
+    onCreated: (fn: () => void) => void
+    onBeforeInitialize: (fn: () => void) => void
+    initialized: ComputedRef<boolean>
+    untilInitialized: Promise<void>
   }) => {
     states?: STATES
     actions?: ACTIONS
@@ -189,6 +197,9 @@ export function createUnmountableAgg<
     destroy?: DestroyFunction
   }
 ): DomainUnmountableAgg<ID, STATES, ACTIONS, EVENTS> {
+  const initialized = ref(false)
+  const beforeInitializeTasks = [] as (() => void)[]
+  const { resolve: resolveInitialize, promise: untilInitialized } = createExternalPromise()
   const scope = effectScope()
   const result = scope.run(() =>
     init({
@@ -196,8 +207,20 @@ export function createUnmountableAgg<
         return scope
       },
       onScopeDispose,
+      onCreated(fn: () => void) {
+        Promise.resolve().then(fn)
+      },
+      onBeforeInitialize(fn: () => void) {
+        beforeInitializeTasks.push(fn)
+      },
+      initialized: computed(() => initialized.value),
+      untilInitialized,
     })
   )!
+  Promise.all(beforeInitializeTasks).then(() => {
+    initialized.value = true
+    resolveInitialize()
+  })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const eventsExt = (result.events || {}) as AddDestroyedEvent<EVENTS>
@@ -238,13 +261,34 @@ export function createAgg<
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(
-  init: () => {
+  init: (context: {
+    onCreated: (fn: () => void) => void
+    onBeforeInitialize: (fn: () => void) => void
+    initialized: ComputedRef<boolean>
+    untilInitialized: Promise<void>
+  }) => {
     states?: STATES
     actions?: ACTIONS
     events?: EVENTS
   }
 ): DomainAgg<STATES, ACTIONS, EVENTS> {
-  const result = init()
+  const initialized = ref(false)
+  const beforeInitializeTasks = [] as (() => void)[]
+  const { resolve: resolveInitialize, promise: untilInitialized } = createExternalPromise()
+  const result = init({
+    onCreated(fn: () => void) {
+      Promise.resolve().then(fn)
+    },
+    onBeforeInitialize(fn: () => void) {
+      beforeInitializeTasks.push(fn)
+    },
+    initialized: computed(() => initialized.value),
+    untilInitialized,
+  })
+  Promise.all(beforeInitializeTasks).then(() => {
+    initialized.value = true
+    resolveInitialize()
+  })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS

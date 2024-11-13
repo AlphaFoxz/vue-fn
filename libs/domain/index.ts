@@ -1,2 +1,2 @@
 export * from './agg'
-export * from './events'
+export * from './event'

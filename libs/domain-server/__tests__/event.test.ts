@@ -1,5 +1,5 @@
 import { it, expect } from '@jest/globals'
-import { createBroadcastEvent, createRequestEvent } from '../events'
+import { createBroadcastEvent, createRequestEvent } from '../event'
 import { ref, reactive } from '@vue/reactivity'
 
 it('createChannelEvent 触发事件', async () => {
@@ -94,13 +94,14 @@ it('createBroadcastEvent Promise的回调', async () => {
   }
   const initEvent = createInitEvent()
   initEvent.toApi().watchPublish(({ data }) => {
-    data.name
-    listenCounter.value++
+    // console.error(data.name, ++listenCounter.value)
+    ++listenCounter.value
     listenedName.value = data.name
   })
   initEvent.toApi().watchPublish(({ data }) => {
-    data.name
-    listenCounter.value++
+    // console.error(data.name, ++listenCounter.value)
+    ++listenCounter.value
+    listenedName.value = data.name
   })
 
   await initEvent.publish({ name: 'Andy' })

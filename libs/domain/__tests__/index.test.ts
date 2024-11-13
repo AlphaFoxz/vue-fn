@@ -184,3 +184,31 @@ it('聚合等待初始化', async () => {
   expect(agg.api.states.user.value?.age).toEqual(18)
   expect(listenCounter.value).toBe(1)
 })
+
+it('聚合onCreated创建', async () => {
+  const agg = createAgg((context) => {
+    const startInitEvent = createRequestEvent({}, () => true)
+    context.onBeforeInitialize(async () => {
+      await startInitEvent.publishRequest({})
+    })
+    return {
+      states: {
+        initialized: context.initialized,
+      },
+      events: {
+        startInit: startInitEvent,
+      },
+    }
+  })
+
+  Promise.resolve().then(() =>
+    setTimeout(() => {
+      agg.api.events.startInit.watchPublishRequest(({ reply }) => {
+        reply()
+      })
+    })
+  )
+
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(agg.api.states.initialized.value).toBe(true)
+})
