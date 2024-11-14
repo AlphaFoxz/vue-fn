@@ -8,6 +8,7 @@ import {
   shallowRef,
   computed,
   shallowReactive,
+  triggerRef,
 } from 'vue'
 import { createPromiseCallback } from './common'
 
@@ -85,6 +86,9 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
       }
     })
     watchHandles.push(handle)
+    if (map[version.value]) {
+      triggerRef(version)
+    }
     return handle
   }
 

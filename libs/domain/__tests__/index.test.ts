@@ -195,6 +195,11 @@ it('聚合onCreated创建', async () => {
       events: {
         startInit: startInitEvent,
       },
+      actions: {
+        untilInitialized: async () => {
+          await context.untilInitialized
+        },
+      },
     }
   })
 
@@ -206,6 +211,37 @@ it('聚合onCreated创建', async () => {
     })
   )
 
-  await new Promise((resolve) => setTimeout(resolve))
+  await agg.api.actions.untilInitialized()
   expect(agg.api.states.initialized.value).toBe(true)
+})
+
+it('聚合外置onBeforeInitialize 钩子', async () => {
+  const data = {
+    inner: false,
+    outer: false,
+  }
+  const agg = createAgg((context) => {
+    context.onBeforeInitialize(() => {
+      data.inner = true
+    })
+    return {
+      states: {
+        initialized: context.initialized,
+      },
+      actions: {
+        untilInitialized: async () => {
+          await context.untilInitialized
+        },
+      },
+    }
+  })
+
+  expect(agg.api.states.initialized.value).toBe(false)
+  agg.onBeforeInitialize(() => {
+    data.outer = true
+  })
+  await agg.api.actions.untilInitialized()
+  expect(agg.api.states.initialized.value).toBe(true)
+  expect(data.inner).toBe(true)
+  expect(data.outer).toBe(true)
 })

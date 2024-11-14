@@ -8,7 +8,6 @@ import {
   onScopeDispose,
   ComputedRef,
   computed,
-  ref,
 } from '@vue/reactivity'
 import {
   type DomainBroadcastEvent,
@@ -166,6 +165,7 @@ export type DomainUnmountableAgg<
 > = {
   readonly id: ID
   readonly api: DomainUnmountableAggApi<STATES, ACTIONS, EVENTS>
+  readonly onBeforeInitialize: (fn: () => void) => void
 }
 
 export type DomainAgg<
@@ -174,6 +174,7 @@ export type DomainAgg<
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
   readonly api: DomainAggApi<STATES, ACTIONS, EVENTS>
+  readonly onBeforeInitialize: (fn: () => void) => void
 }
 
 export function createUnmountableAgg<
@@ -197,9 +198,14 @@ export function createUnmountableAgg<
     destroy?: DomainDestroyFunction
   }
 ): DomainUnmountableAgg<ID, STATES, ACTIONS, EVENTS> {
-  const initialized = ref(false)
-  const beforeInitializeTasks = [] as (() => void)[]
-  const { callback: initialize, promise: untilInitialized } = createPromiseCallback(() => {})
+  const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
+  function onBeforeInitialize(fn: () => void) {
+    if (initialized.value === true) {
+      throw new Error('already initialized')
+    }
+    beforeInitializeTasks.push(fn())
+  }
+  const beforeInitializeTasks: (void | Promise<void>)[] = []
   const scope = effectScope()
   const result = scope.run(() =>
     init({
@@ -210,16 +216,13 @@ export function createUnmountableAgg<
       onCreated(fn: () => void) {
         Promise.resolve().then(fn)
       },
-      onBeforeInitialize(fn: () => void) {
-        beforeInitializeTasks.push(fn)
-      },
+      onBeforeInitialize,
       initialized: computed(() => initialized.value),
       untilInitialized,
     })
   )!
   Promise.all(beforeInitializeTasks).then(() => {
     initialize()
-    initialized.value = true
   })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
@@ -253,6 +256,7 @@ export function createUnmountableAgg<
       events: eventsExt as unknown as EVENTS,
       destroy,
     }),
+    onBeforeInitialize,
   }
 }
 
@@ -272,22 +276,25 @@ export function createAgg<
     events?: EVENTS
   }
 ): DomainAgg<STATES, ACTIONS, EVENTS> {
-  const initialized = ref(false)
-  const beforeInitializeTasks = [] as (() => void)[]
-  const { callback: initialize, promise: untilInitialized } = createPromiseCallback(() => {})
+  const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
+  function onBeforeInitialize(fn: () => void) {
+    if (initialized.value === true) {
+      throw new Error('already initialized')
+    }
+    beforeInitializeTasks.push(fn())
+  }
+  const beforeInitializeTasks: (void | Promise<void>)[] = []
+
   const result = init({
     onCreated(fn: () => void) {
       Promise.resolve().then(fn)
     },
-    onBeforeInitialize(fn: () => void) {
-      beforeInitializeTasks.push(fn)
-    },
+    onBeforeInitialize,
     initialized: computed(() => initialized.value),
     untilInitialized,
   })
   Promise.all(beforeInitializeTasks).then(() => {
     initialize()
-    initialized.value = true
   })
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
@@ -299,5 +306,6 @@ export function createAgg<
       events,
       destroy: () => {},
     }),
+    onBeforeInitialize,
   }
 }
