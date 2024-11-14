@@ -45,72 +45,73 @@ it('createChannelEvent 函数的回调', async () => {
   expect(succeed).toBeTruthy()
 })
 
-it('createChannelEvent Promise的回调', async () => {
+it('createChannelEvent 错误后停止Promise', async () => {
   const listenerCounter = ref(0)
   let succeed = false
   function createInitEvent() {
-    const event = createRequestEvent({}, (name: string) => {
-      if (name !== 'Andy') {
-        return new Error('incorrect name')
-      }
-      listenerCounter.value++
-      succeed = true
-    })
+    const event = createRequestEvent(
+      {},
+      (name: string) => {
+        listenerCounter.value++
+        if (name !== 'Andy') {
+          return new Error('incorrect name')
+        }
+        succeed = true
+      },
+      true
+    )
     return event
   }
   const watchedEventsCounter = ref(0)
   const initEvent = createInitEvent()
   initEvent.toApi().watchPublishRequest(({ reply }) => {
     watchedEventsCounter.value++
-    reply('Andy')
+    reply('wong')
   })
   initEvent.toApi().watchPublishRequest(({ reply }) => {
     watchedEventsCounter.value++
     reply('Andy')
   })
   await initEvent.publishRequest({ name: 'Andy' })
-  expect(succeed).toBe(true)
+  expect(succeed).toBe(false)
   expect(listenerCounter.value).toBe(1)
   expect(watchedEventsCounter.value).toBe(1)
 })
 
-it('createChannelEvent Promise的回调', async () => {
+it('createChannelEvent 错误后不停止Promise', async () => {
   const listenerCounter = ref(0)
+  const watchedCounter = ref(0)
   let succeed = false
   function createInitEvent() {
-    const name = ref('wong')
-    const event = createRequestEvent({ name }, (name: string) => {
-      if (name !== 'Andy') {
-        return new Error('incorrect name')
-      }
-      listenerCounter.value++
-      succeed = true
-    })
+    const event = createRequestEvent(
+      {},
+      (name: string) => {
+        listenerCounter.value++
+        if (name !== 'Andy') {
+          return new Error('incorrect name')
+        }
+        succeed = true
+      },
+      false
+    )
     return event
   }
-  const watchedEventsCounter = ref(0)
   const initEvent = createInitEvent()
-  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
-    watchedEventsCounter.value++
-    if (data.name === 'Andy') {
-      succeed = true
-    }
-    reply('Andy')
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedCounter.value++
+    reply('wong')
   })
-  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
-    watchedEventsCounter.value++
-    if (data.name === 'Andy') {
-      succeed = true
-    }
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedCounter.value++
     reply('Andy')
   })
   await initEvent.publishRequest({ name: 'Andy' })
   expect(succeed).toBe(true)
-  expect(listenerCounter.value).toBe(1)
-  expect(watchedEventsCounter.value).toBe(1)
+  expect(listenerCounter.value).toBe(2)
+  expect(watchedCounter.value).toBe(2)
 })
 
-it('createBroadcastEvent Promise的回调', async () => {
+it('createBroadcastEvent 广播', async () => {
   const listenCounter = ref(0)
   const listenedName = ref('')
   function createInitEvent() {
@@ -120,12 +121,10 @@ it('createBroadcastEvent Promise的回调', async () => {
   }
   const initEvent = createInitEvent()
   initEvent.toApi().watchPublish(({ data }) => {
-    // console.error(data.name, ++listenCounter.value)
     ++listenCounter.value
     listenedName.value = data.name
   })
   initEvent.toApi().watchPublish(({ data }) => {
-    // console.error(data.name, ++listenCounter.value)
     ++listenCounter.value
     listenedName.value = data.name
   })

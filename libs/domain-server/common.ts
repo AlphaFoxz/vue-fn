@@ -19,31 +19,22 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
       if (r instanceof Error) {
         errorRef.value = r
         result = r
+        if (stopOnError) {
+          resolveEffect()
+        }
       } else {
         resolvedRef.value = true
         errorRef.value = undefined
         result = true
+        resolveEffect()
       }
-      resolveEffect()
     },
   }) as CALLBACK
-  const promise = new Promise<void>((res, rej) => {
-    if (stopOnError && result instanceof Error) {
-      rej(result)
-      return
-    } else if (result === true) {
-      res()
+  const promise = new Promise<void>((res) => {
+    if ((stopOnError && result instanceof Error) || result === true) {
       return
     }
-    resolveEffect = () => {
-      if (stopOnError && result instanceof Error) {
-        rej(result)
-        return
-      } else if (result === true) {
-        res()
-        return
-      }
-    }
+    resolveEffect = res
   })
   return {
     promise,

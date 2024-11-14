@@ -30,7 +30,7 @@ export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<type
 export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventCallback>(
   _: DATA,
   reply: REPLY,
-  stopOnError = true
+  stopOnError = false
 ) {
   let version = shallowRef('0')
   const map: Record<
@@ -64,11 +64,11 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   ) => {
     let tmpHandle: WatchHandle | undefined = undefined
     const handle = watch(version, (newVersion) => {
-      if (!map[newVersion] || map[newVersion].resolved.value || map[newVersion].error.value) {
+      if (!map[newVersion] || map[newVersion].resolved.value || (stopOnError && map[newVersion].error.value)) {
         return
       }
       tmpHandle = watch([map[newVersion].resolved, map[newVersion].error], ([resolved, error]) => {
-        if (!map[newVersion] || resolved || error) {
+        if (!map[newVersion] || resolved || (stopOnError && error)) {
           delete map[newVersion]
           tmpHandle?.()
           tmpHandle = undefined
