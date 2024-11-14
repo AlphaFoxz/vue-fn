@@ -6,5 +6,6 @@ export default {
   //     tsconfig: 'tsconfig.json',
   //   },
   // },
+  maxWorkers: 2,
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 }

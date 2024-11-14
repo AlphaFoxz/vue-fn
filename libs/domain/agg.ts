@@ -29,10 +29,10 @@ type AddDestroyedEventApi<T extends object, K = 'destroyed'> = keyof T extends n
       [P in keyof T as P]: P extends K ? DomainBroadcastEvent<{}> : T[P]
     } & { destroyed: DomainDestroyedEventApi }
 
-type InferDomainEvent<EVENT extends DomainEvent<any, any>> = EVENT extends DomainEvent<infer DATA, infer CALLBACK>
-  ? DomainEvent<DATA, CALLBACK> extends DomainBroadcastEvent<DATA>
-    ? DomainBroadcastEvent<DATA>
-    : DomainRequestEvent<DATA, CALLBACK>
+type InferDomainEvent<EVENT extends DomainEvent<any, any>> = EVENT extends DomainBroadcastEvent<infer DATA>
+  ? DomainBroadcastEvent<DATA>
+  : EVENT extends DomainRequestEvent<infer DATA, infer CALLBACK>
+  ? DomainRequestEvent<DATA, CALLBACK>
   : never
 type InferDomainEventApi<EVENT extends DomainEvent<any, any>> = ReturnType<InferDomainEvent<EVENT>['toApi']>
 

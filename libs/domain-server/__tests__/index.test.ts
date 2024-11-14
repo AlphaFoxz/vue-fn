@@ -2,6 +2,34 @@ import { expect, it } from '@jest/globals'
 import { createAgg, createBroadcastEvent, createRequestEvent, createUnmountableAgg } from '..'
 import { ref } from '@vue/reactivity'
 
+it('event + agg 类型推断', async () => {
+  const agg1 = createAgg(() => {
+    const requestEvent = createRequestEvent({}, () => {})
+    const broadcastEvent = createBroadcastEvent(() => {})
+    return {
+      events: {
+        requestEvent,
+        broadcastEvent,
+      },
+    }
+  })
+  agg1.api.events.requestEvent.watchPublishRequest
+  agg1.api.events.broadcastEvent.watchPublish
+
+  const agg2 = createUnmountableAgg(1, () => {
+    const requestEvent = createRequestEvent({}, () => {})
+    const broadcastEvent = createBroadcastEvent(() => {})
+    return {
+      events: {
+        requestEvent,
+        broadcastEvent,
+      },
+    }
+  })
+  agg2.api.events.requestEvent.watchPublishRequest
+  agg2.api.events.broadcastEvent.watchPublish
+})
+
 it('event + agg 触发事件', async () => {
   const agg = createUnmountableAgg(1, () => {
     const version = ref(0)
