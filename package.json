@@ -1,6 +1,6 @@
 {
   "name": "vue-fn",
-  "version": "0.0.3-aplha.18",
+  "version": "0.0.3-aplha.19",
   "description": "一个 vue3 的响应式函数工具包",
   "type": "module",
   "sideEffects": false,
