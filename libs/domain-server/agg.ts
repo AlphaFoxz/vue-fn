@@ -17,7 +17,7 @@ import {
   DomainEvent,
   DomainRequestEvent,
 } from './event'
-import { type Result, createPromiseCallback } from './common'
+import { createPromiseCallback } from './common'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -189,7 +189,7 @@ export function createUnmountableAgg<
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
     initialized: ComputedRef<boolean>
-    untilInitialized: Promise<Result<undefined>>
+    untilInitialized: Promise<void>
   }) => {
     states?: STATES
     actions?: ACTIONS
@@ -265,7 +265,7 @@ export function createAgg<
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
     initialized: ComputedRef<boolean>
-    untilInitialized: Promise<Result<undefined>>
+    untilInitialized: Promise<void>
   }) => {
     states?: STATES
     actions?: ACTIONS

@@ -1,6 +1,6 @@
 import { it, expect } from '@jest/globals'
 import { createBroadcastEvent, createRequestEvent } from '../event'
-import { ref, reactive } from '@vue/reactivity'
+import { ref } from '@vue/reactivity'
 
 it('createChannelEvent 触发事件', async () => {
   function register() {
@@ -46,40 +46,68 @@ it('createChannelEvent 函数的回调', async () => {
 })
 
 it('createChannelEvent Promise的回调', async () => {
-  const listenerCounter = reactive<string[]>([])
+  const listenerCounter = ref(0)
   let succeed = false
   function createInitEvent() {
-    const name = ref('wong')
-    const event = createRequestEvent({ name }, (b: boolean) => {
-      listenerCounter.push('')
-      succeed = b
-      const start = Date.now()
-      while (Date.now() - start < 10) {
-        // 运行10ms
+    const event = createRequestEvent({}, (name: string) => {
+      if (name !== 'Andy') {
+        return new Error('incorrect name')
       }
+      listenerCounter.value++
+      succeed = true
     })
     return event
   }
-  const watchedEventsCounter = reactive<string[]>([])
+  const watchedEventsCounter = ref(0)
   const initEvent = createInitEvent()
-  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
-    watchedEventsCounter.push('')
-    if (data.name === 'Andy') {
-      succeed = true
-    }
-    reply(true)
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedEventsCounter.value++
+    reply('Andy')
   })
-  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
-    watchedEventsCounter.push('')
-    if (data.name === 'Andy') {
-      succeed = true
-    }
-    reply(true)
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedEventsCounter.value++
+    reply('Andy')
   })
   await initEvent.publishRequest({ name: 'Andy' })
   expect(succeed).toBe(true)
-  expect(listenerCounter.length).toBe(1)
-  expect(watchedEventsCounter.length).toBe(1)
+  expect(listenerCounter.value).toBe(1)
+  expect(watchedEventsCounter.value).toBe(1)
+})
+
+it('createChannelEvent Promise的回调', async () => {
+  const listenerCounter = ref(0)
+  let succeed = false
+  function createInitEvent() {
+    const name = ref('wong')
+    const event = createRequestEvent({ name }, (name: string) => {
+      if (name !== 'Andy') {
+        return new Error('incorrect name')
+      }
+      listenerCounter.value++
+      succeed = true
+    })
+    return event
+  }
+  const watchedEventsCounter = ref(0)
+  const initEvent = createInitEvent()
+  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
+    watchedEventsCounter.value++
+    if (data.name === 'Andy') {
+      succeed = true
+    }
+    reply('Andy')
+  })
+  initEvent.toApi().watchPublishRequest(({ data, reply }) => {
+    watchedEventsCounter.value++
+    if (data.name === 'Andy') {
+      succeed = true
+    }
+    reply('Andy')
+  })
+  await initEvent.publishRequest({ name: 'Andy' })
+  expect(succeed).toBe(true)
+  expect(listenerCounter.value).toBe(1)
+  expect(watchedEventsCounter.value).toBe(1)
 })
 
 it('createBroadcastEvent Promise的回调', async () => {

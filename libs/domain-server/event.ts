@@ -13,7 +13,7 @@ import { createPromiseCallback } from './common'
 
 export type DomainEventData = { [key: string]: any }
 
-export type DomainRequestEventCallback = <T>(...args: any[]) => { value?: T; error?: Error } | void
+export type DomainRequestEventCallback = (...args: any[]) => void | Error
 
 export type DomainEvent<DATA extends DomainEventData, CALLBACK extends DomainRequestEventCallback> =
   | DomainRequestEvent<DATA, CALLBACK>
@@ -29,7 +29,8 @@ export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<type
 
 export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventCallback>(
   _: DATA,
-  reply: REPLY
+  reply: REPLY,
+  stopOnError = true
 ) {
   let version = shallowRef('0')
   const map: Record<
@@ -88,7 +89,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   }
 
   const publishFn = async (data: UnwrapNestedRefs<DATA>) => {
-    const { promise, callback: res, resolved, error } = createPromiseCallback(reply)
+    const { promise, callback: res, resolved, error } = createPromiseCallback(reply, stopOnError)
     updateEvent(data, res, resolved, error)
     await promise
   }
