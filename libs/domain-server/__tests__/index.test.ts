@@ -1,9 +1,10 @@
 import { expect, it } from '@jest/globals'
-import { createAgg, createBroadcastEvent, createRequestEvent, createUnmountableAgg } from '..'
+import { createSingletonAgg, createBroadcastEvent, createRequestEvent, createMultiInstanceAgg } from '..'
 import { ref } from '@vue/reactivity'
+import * as aggInst from './singleton-agg-inst'
 
 it('event + agg 类型推断', async () => {
-  const agg1 = createAgg(() => {
+  const agg1 = createSingletonAgg(() => {
     const requestEvent = createRequestEvent({}, () => {})
     const broadcastEvent = createBroadcastEvent(() => {})
     return {
@@ -16,7 +17,7 @@ it('event + agg 类型推断', async () => {
   agg1.api.events.requestEvent.watchPublishRequest
   agg1.api.events.broadcastEvent.watchPublish
 
-  const agg2 = createUnmountableAgg(1, () => {
+  const agg2 = createMultiInstanceAgg(1, () => {
     const requestEvent = createRequestEvent({}, () => {})
     const broadcastEvent = createBroadcastEvent(() => {})
     return {
@@ -31,7 +32,7 @@ it('event + agg 类型推断', async () => {
 })
 
 it('event + agg 触发事件', async () => {
-  const agg = createUnmountableAgg(1, () => {
+  const agg = createMultiInstanceAgg(1, () => {
     const version = ref(0)
     const name = ref('unknown')
     const saveEvent = createRequestEvent({ name }, () => {
@@ -66,7 +67,7 @@ it('event + agg 触发事件', async () => {
 })
 
 it('createUnmountableAgg 测试自带的销毁事件', async () => {
-  const agg = createUnmountableAgg(1, () => {
+  const agg = createMultiInstanceAgg(1, () => {
     return {
       states: {},
       actions: {},
@@ -85,7 +86,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
 })
 
 it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', async () => {
-  const agg = createUnmountableAgg(1, () => {
+  const agg = createMultiInstanceAgg(1, () => {
     const name = ref('')
     let age = 0
     const watchName = ref(name.value)
@@ -119,7 +120,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
 })
 
 it('event中的data应该脱离响应式', async () => {
-  const agg = createAgg(() => {
+  const agg = createSingletonAgg(() => {
     const version = ref(0)
     const name = ref('unknown')
     const age = ref(0)
@@ -159,7 +160,7 @@ it('event中的data应该脱离响应式', async () => {
 })
 
 it('聚合等待初始化', async () => {
-  const agg = createAgg(() => {
+  const agg = createSingletonAgg(() => {
     const isReady = ref(false)
     type UserInfo = { name: string; age: number }
     let user = ref<UserInfo>()
@@ -211,7 +212,7 @@ it('聚合等待初始化', async () => {
 })
 
 it('聚合onCreated创建', async () => {
-  const agg = createAgg((context) => {
+  const agg = createSingletonAgg((context) => {
     const startInitEvent = createRequestEvent({}, () => {})
     context.onBeforeInitialize(async () => {
       await startInitEvent.publishRequest({})
@@ -248,7 +249,7 @@ it('聚合外置onBeforeInitialize 钩子', async () => {
     inner: false,
     outer: false,
   }
-  const agg = createAgg((context) => {
+  const agg = createSingletonAgg((context) => {
     context.onBeforeInitialize(() => {
       data.inner = true
     })
@@ -265,11 +266,28 @@ it('聚合外置onBeforeInitialize 钩子', async () => {
   })
 
   expect(agg.api.states.initialized.value).toBe(false)
-  agg.onBeforeInitialize(() => {
+  agg.tryOnBeforeInitialize(() => {
     data.outer = true
   })
   await agg.api.actions.untilInitialized()
   expect(agg.api.states.initialized.value).toBe(true)
   expect(data.inner).toBe(true)
   expect(data.outer).toBe(true)
+})
+
+it('注册插件', async () => {
+  const PLUGIN = aggInst.PluginHelper.defineSetupPlugin({
+    register: (agg) => {
+      agg.api.events.needLoadData.watchPublishRequest(({ reply }) => {
+        reply('Hello')
+      })
+    },
+  })
+
+  aggInst.registerSetupPlugin(PLUGIN)
+  const agg = aggInst.useAgg()
+  expect(agg.states.initialized.value).toBe(false)
+  await agg.actions.untilInitialized()
+  expect(agg.states.initialized.value).toBe(true)
+  expect(agg.states.loadData.value).toEqual('Hello')
 })

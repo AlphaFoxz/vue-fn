@@ -1,11 +1,11 @@
 import { describe, expect, it } from '@jest/globals'
-import { createAgg, createAggApi, createUnmountableAgg, createUnmountableAggApi } from '..'
+import { createSingletonAgg, createAggApi, createMultiInstanceAgg, createMultiInstanceAggApi } from '../agg'
 import { computed, isReadonly, onWatcherCleanup, reactive, ref, shallowReactive, watch } from '@vue/reactivity'
 
 describe('测试聚合整体', () => {
   it('createUnmountableAgg destory副作用处理', async () => {
     let clearFlag = false
-    const agg = createUnmountableAgg(1, (context) => {
+    const agg = createMultiInstanceAgg(1, (context) => {
       const a = ref('a')
       const aPlus = ref(a.value + '+')
       watch(a, (v) => {
@@ -52,7 +52,7 @@ describe('测试聚合整体', () => {
           }
         }
       })
-      return createUnmountableAggApi({
+      return createMultiInstanceAggApi({
         states: {
           a,
           aPlus,
@@ -81,7 +81,7 @@ describe('测试聚合整体', () => {
   })
 
   it('createAgg 基本成员变量、方法验证', () => {
-    const agg = createAgg(() => {
+    const agg = createSingletonAgg(() => {
       return {
         states: {
           a: ref('a'),
@@ -98,7 +98,7 @@ describe('测试聚合整体', () => {
   })
 
   it('createUnmountableAgg 基本成员变量、方法验证', () => {
-    const agg = createUnmountableAgg(1, () => {
+    const agg = createMultiInstanceAgg(1, () => {
       const a = ref('a')
       watch(a, () => {})
       return {
@@ -255,7 +255,7 @@ describe('测试聚合的api部分', () => {
           }
         }
       })
-      return createUnmountableAggApi({
+      return createMultiInstanceAggApi({
         states: {
           a,
           aPlus,

@@ -17,6 +17,7 @@ import {
   DomainRequestEvent,
 } from './event'
 import { createPromiseCallback } from './common'
+import { DomainPlugin } from './plugin'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -71,7 +72,7 @@ export type DomainUnmountableEventsApi<EVENTS extends CustomerEventRecords<EVENT
     >
   : { destroyed: DomainDestroyedEventApi }
 
-export type DomainUnmountableAggApi<
+export type DomainMultiInstanceAggApi<
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
@@ -82,7 +83,7 @@ export type DomainUnmountableAggApi<
   destroy: DomainDestroyFunction
 }>
 
-export type DomainAggApi<
+export type DomainSingletonAggApi<
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
@@ -92,7 +93,7 @@ export type DomainAggApi<
   events: DomainEventsApi<EVENTS>
 }>
 
-export function createUnmountableAggApi<
+export function createMultiInstanceAggApi<
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
@@ -101,8 +102,8 @@ export function createUnmountableAggApi<
   actions: ACTIONS
   events: EVENTS
   destroy: DomainDestroyFunction
-}): DomainUnmountableAggApi<STATES, ACTIONS, EVENTS> {
-  return createAggApiContent(option) as unknown as DomainUnmountableAggApi<STATES, ACTIONS, EVENTS>
+}): DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS> {
+  return createAggApiContent(option) as unknown as DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS>
 }
 
 export function createAggApi<
@@ -114,7 +115,7 @@ export function createAggApi<
   actions: ACTIONS
   events: EVENTS
   destroy: DomainDestroyFunction
-}): DomainAggApi<STATES, ACTIONS, EVENTS> {
+}): DomainSingletonAggApi<STATES, ACTIONS, EVENTS> {
   const apiContent = createAggApiContent(option)
   return shallowReadonly({
     states: apiContent.states,
@@ -157,27 +158,29 @@ function createAggApiContent<
   })
 }
 
-export type DomainUnmountableAgg<
+export type DomainMultiInstanceAgg<
   ID,
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
   readonly id: ID
-  readonly api: DomainUnmountableAggApi<STATES, ACTIONS, EVENTS>
-  readonly onBeforeInitialize: (fn: () => void) => void
+  readonly api: DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS>
+  readonly tryOnBeforeInitialize: (fn: () => void) => void
+  readonly trySetupPlugin: (plugin: DomainPlugin<DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS>>) => void
 }
 
-export type DomainAgg<
+export type DomainSingletonAgg<
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
-  readonly api: DomainAggApi<STATES, ACTIONS, EVENTS>
-  readonly onBeforeInitialize: (fn: () => void) => void
+  readonly api: DomainSingletonAggApi<STATES, ACTIONS, EVENTS>
+  readonly tryOnBeforeInitialize: (fn: () => void) => void
+  readonly trySetupPlugin: (plugin: DomainPlugin<DomainSingletonAgg<STATES, ACTIONS, EVENTS>>) => void
 }
 
-export function createUnmountableAgg<
+export function createMultiInstanceAgg<
   ID,
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
@@ -197,7 +200,8 @@ export function createUnmountableAgg<
     events?: EVENTS
     destroy?: DomainDestroyFunction
   }
-): DomainUnmountableAgg<ID, STATES, ACTIONS, EVENTS> {
+): DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS> {
+  // 声明 生命周期 - init
   const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
   function onBeforeInitialize(fn: () => void) {
     if (initialized.value === true) {
@@ -206,6 +210,12 @@ export function createUnmountableAgg<
     beforeInitializeTasks.push(fn())
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
+  setTimeout(() =>
+    Promise.all(beforeInitializeTasks).then(() => {
+      initialize()
+    })
+  )
+
   const scope = effectScope()
   const result = scope.run(() =>
     init({
@@ -221,9 +231,7 @@ export function createUnmountableAgg<
       untilInitialized,
     })
   )!
-  Promise.all(beforeInitializeTasks).then(() => {
-    initialize()
-  })
+
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const eventsExt = (result.events || {}) as AddDestroyedEvent<EVENTS>
@@ -250,17 +258,32 @@ export function createUnmountableAgg<
   }
   return {
     id,
-    api: createUnmountableAggApi({
+    api: createMultiInstanceAggApi({
       states,
       actions,
       events: eventsExt as unknown as EVENTS,
       destroy,
     }),
-    onBeforeInitialize,
+    tryOnBeforeInitialize(fn: () => void) {
+      if (initialized.value) {
+        throw new Error('Can not setup after initialized')
+      }
+      beforeInitializeTasks.push(fn())
+    },
+    trySetupPlugin(plugin: DomainPlugin<DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS>>) {
+      if (initialized.value) {
+        throw new Error('Can not setup after initialized')
+      }
+      beforeInitializeTasks.push(
+        (() => {
+          plugin.register(this)
+        })()
+      )
+    },
   }
 }
 
-export function createAgg<
+export function createSingletonAgg<
   STATES extends CustomerStateRecords<STATES>,
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
@@ -275,12 +298,9 @@ export function createAgg<
     actions?: ACTIONS
     events?: EVENTS
   }
-): DomainAgg<STATES, ACTIONS, EVENTS> {
+): DomainSingletonAgg<STATES, ACTIONS, EVENTS> {
   const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
   function onBeforeInitialize(fn: () => void) {
-    if (initialized.value === true) {
-      throw new Error('already initialized')
-    }
     beforeInitializeTasks.push(fn())
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
@@ -293,9 +313,12 @@ export function createAgg<
     initialized: computed(() => initialized.value),
     untilInitialized,
   })
-  Promise.all(beforeInitializeTasks).then(() => {
-    initialize()
-  })
+  setTimeout(() =>
+    Promise.all(beforeInitializeTasks).then(() => {
+      initialize()
+    })
+  )
+
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS
@@ -306,6 +329,21 @@ export function createAgg<
       events,
       destroy: () => {},
     }),
-    onBeforeInitialize,
+    tryOnBeforeInitialize(fn: () => void) {
+      if (initialized.value) {
+        throw new Error('Can not setup after initialized')
+      }
+      beforeInitializeTasks.push(fn())
+    },
+    trySetupPlugin(plugin: DomainPlugin<DomainSingletonAgg<STATES, ACTIONS, EVENTS>>) {
+      if (initialized.value) {
+        throw new Error('Can not setup after initialized')
+      }
+      beforeInitializeTasks.push(
+        (() => {
+          plugin.register(this)
+        })()
+      )
+    },
   }
 }
