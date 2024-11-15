@@ -215,7 +215,6 @@ export function createMultiInstanceAgg<
       initialize()
     })
   )
-
   const scope = effectScope()
   const result = scope.run(() =>
     init({

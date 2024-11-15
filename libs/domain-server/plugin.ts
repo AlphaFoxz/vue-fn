@@ -23,12 +23,12 @@ export type DomainHotSwapPlugin<T extends DomainAgg> = {
   unregister: (api: T) => void
 }
 
-type DomainHotSwapPluginOptions<T extends DomainAgg> = ReturnType<DomainHotSwapPluginOptionsFn<T>>
+// type DomainHotSwapPluginOptions<T extends DomainAgg> = ReturnType<DomainHotSwapPluginOptionsFn<T>>
 
-type DomainHotSwapPluginOptionsFn<T extends DomainAgg> = () => {
-  register: (agg: T) => void
-  unregister: (api: T) => void
-}
+// type DomainHotSwapPluginOptionsFn<T extends DomainAgg> = () => {
+//   register: (agg: T) => void
+//   unregister: (api: T) => void
+// }
 
 function createPluginHelper<T extends DomainAgg>() {
   return Object.freeze({
@@ -44,22 +44,22 @@ function createPluginHelper<T extends DomainAgg>() {
         register: opts!.register,
       })
     },
-    defineHotSwapPlugin(init: DomainHotSwapPluginOptions<T> | DomainHotSwapPluginOptionsFn<T>): DomainHotSwapPlugin<T> {
-      let opts: undefined | DomainHotSwapPluginOptions<T> = undefined
-      if (init instanceof Function) {
-        opts = init()
-      }
-      return Object.freeze({
-        type: 'HotSwap',
-        register: opts!.register,
-        unregister: opts!.unregister,
-      })
-    },
+    // defineHotSwapPlugin(init: DomainHotSwapPluginOptions<T> | DomainHotSwapPluginOptionsFn<T>): DomainHotSwapPlugin<T> {
+    //   let opts: undefined | DomainHotSwapPluginOptions<T> = undefined
+    //   if (init instanceof Function) {
+    //     opts = init()
+    //   }
+    //   return Object.freeze({
+    //     type: 'HotSwap',
+    //     register: opts!.register,
+    //     unregister: opts!.unregister,
+    //   })
+    // },
   })
 }
 
-export function createPluginHelperByCreator<FUN extends (...args: any[]) => T, T extends DomainAgg>(_: FUN) {
-  return createPluginHelper<T>()
+export function createPluginHelperByCreator<FUN extends (...args: any[]) => DomainAgg>(_: FUN) {
+  return createPluginHelper<ReturnType<FUN>>()
 }
 
 export function createPluginHelperByAgg<T extends DomainAgg>(_: T) {

@@ -26,7 +26,7 @@ const agg = createSingletonAgg((context) => {
 
 export const PluginHelper = createPluginHelperByAgg(agg)
 
-export function useAgg() {
+export function useSingletonAgg() {
   return agg.api
 }
 

@@ -1,7 +1,8 @@
 import { expect, it } from '@jest/globals'
 import { createSingletonAgg, createBroadcastEvent, createRequestEvent, createMultiInstanceAgg } from '..'
 import { ref } from '@vue/reactivity'
-import * as aggInst from './singleton-agg-inst'
+import * as singletonExample from './singleton-agg'
+import * as multiInstanceExample from './multi-instance-agg'
 
 it('event + agg 类型推断', async () => {
   const agg1 = createSingletonAgg(() => {
@@ -275,8 +276,8 @@ it('聚合外置onBeforeInitialize 钩子', async () => {
   expect(data.outer).toBe(true)
 })
 
-it('注册插件', async () => {
-  const PLUGIN = aggInst.PluginHelper.defineSetupPlugin({
+it('注册单例插件', async () => {
+  const PLUGIN = singletonExample.PluginHelper.defineSetupPlugin({
     register: (agg) => {
       agg.api.events.needLoadData.watchPublishRequest(({ reply }) => {
         reply('Hello')
@@ -284,8 +285,24 @@ it('注册插件', async () => {
     },
   })
 
-  aggInst.registerSetupPlugin(PLUGIN)
-  const agg = aggInst.useAgg()
+  singletonExample.registerSetupPlugin(PLUGIN)
+  const agg = singletonExample.useSingletonAgg()
+  expect(agg.states.initialized.value).toBe(false)
+  await agg.actions.untilInitialized()
+  expect(agg.states.initialized.value).toBe(true)
+  expect(agg.states.loadData.value).toEqual('Hello')
+})
+
+it('注册多实例插件', async () => {
+  const PLUGIN = multiInstanceExample.PluginHelper.defineSetupPlugin({
+    register: (agg) => {
+      agg.api.events.needLoadData.watchPublishRequest(({ reply }) => {
+        reply('Hello')
+      })
+    },
+  })
+  multiInstanceExample.registerSetupPlugin(PLUGIN)
+  const agg = multiInstanceExample.useMultiInstaceAgg('1')
   expect(agg.states.initialized.value).toBe(false)
   await agg.actions.untilInitialized()
   expect(agg.states.initialized.value).toBe(true)
