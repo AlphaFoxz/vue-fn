@@ -13,20 +13,20 @@ type RequireMessage = {
 }
 
 export function createSharedFactory(channel: BroadcastChannel) {
-  const map: Record<string, ShallowRef<any>> = {}
+  const map: Record<string, { data: ShallowRef<any>; trigger: () => void }> = {}
   channel.onmessage = (event) => {
     if (event.data.t === 'U') {
       const syncMessage = event.data as SharedSyncMessage
       if (!map[syncMessage.k]) {
-        map[syncMessage.k] = shallowRef(syncMessage.v)
-      } else if (map[syncMessage.k].value !== syncMessage.v) {
-        map[syncMessage.k].value = syncMessage.v
+        map[syncMessage.k] = { data: shallowRef(syncMessage.v), trigger: () => {} }
+      } else if (map[syncMessage.k].data.value !== syncMessage.v) {
+        map[syncMessage.k].data.value = syncMessage.v
       }
     }
     if (event.data.t === 'R') {
       const requireMessage = event.data as RequireMessage
       if (map[requireMessage.k]) {
-        channel.postMessage({ t: 'U', k: requireMessage.k, v: map[requireMessage.k].value })
+        channel.postMessage({ t: 'U', k: requireMessage.k, v: map[requireMessage.k].data.value })
       }
     }
   }
@@ -34,30 +34,33 @@ export function createSharedFactory(channel: BroadcastChannel) {
     sharedRef: <T>(name: string, value: T) => {
       setTimeout(() => channel.postMessage({ t: 'R', k: name }), 1)
       const id = genId(name)
-      map[id] = shallowRef(value)
-      let tri: () => void = () => {}
-      watch(map[id], (n: any, o: any) => {
+      map[id] = { data: shallowRef(value), trigger: () => {} }
+      watch(map[id].data, (n: any, o: any) => {
         if (n !== o) {
           value = n
-          tri()
-          // channel.postMessage({ t: 'U', k: id, v: n })
+          map[id].trigger()
         }
       })
-      return customRef((track, trigger) => {
+      const r = customRef((track, trigger) => {
         return {
           get() {
             track()
             return value
           },
           set(newValue: T) {
-            map[id].value = newValue
+            map[id].trigger = trigger
+            if (value === newValue) {
+              return
+            }
+            map[id].data.value = newValue
             value = newValue
-            tri = trigger
             channel.postMessage({ t: 'U', k: id, v: newValue })
             trigger()
           },
         }
       })
+      r.value = value
+      return r
     },
   }
 }
