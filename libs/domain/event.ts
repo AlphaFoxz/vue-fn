@@ -1,7 +1,6 @@
 import {
   type DeepReadonly,
   type UnwrapNestedRefs,
-  type Ref,
   WatchHandle,
   readonly,
   watch,
@@ -9,6 +8,7 @@ import {
   computed,
   shallowReactive,
   triggerRef,
+  ComputedRef,
 } from 'vue'
 import { createPromiseCallback } from './common'
 
@@ -31,7 +31,8 @@ export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<type
 export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventCallback>(
   _: DATA,
   reply: REPLY,
-  stopOnError = false
+  stopOnError = false,
+  timeoutMs: number | false = false
 ) {
   let version = shallowRef('0')
   const map: Record<
@@ -39,16 +40,16 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
     {
       data: DeepReadonly<UnwrapNestedRefs<DATA>>
       reply: REPLY
-      resolved: Ref<boolean>
-      error: Ref<Error | undefined>
+      resolved: ComputedRef<boolean>
+      error: ComputedRef<Error | undefined>
     }
   > = {}
   const watchHandles = shallowReactive<WatchHandle[]>([])
   function updateEvent(
     data: UnwrapNestedRefs<DATA>,
     rep: REPLY,
-    resolved: Ref<boolean>,
-    error: Ref<Error | undefined>
+    resolved: ComputedRef<boolean>,
+    error: ComputedRef<Error | undefined>
   ) {
     const newVer = largeNumberIncrease(version.value)
     map[newVer] = {
@@ -82,7 +83,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
           reply: map[newVersion].reply,
         })
       } catch (e) {
-        map[newVersion].error.value = e as Error
+        // console.error('=================', map[newVersion].error.value)
       }
     })
     watchHandles.push(handle)
@@ -93,7 +94,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   }
 
   const publishFn = async (data: UnwrapNestedRefs<DATA>) => {
-    const { promise, callback: res, resolved, error } = createPromiseCallback(reply, stopOnError)
+    const { promise, callback: res, resolved, error } = createPromiseCallback(reply, stopOnError, timeoutMs)
     updateEvent(data, res, resolved, error)
     await promise
   }

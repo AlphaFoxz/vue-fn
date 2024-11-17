@@ -1,13 +1,14 @@
-import { type Ref, ref } from '@vue/reactivity'
+import { ComputedRef, ref, computed } from '@vue/reactivity'
 
 export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error | void>(
   callback: CALLBACK,
-  stopOnError: boolean = true
+  stopOnError: boolean = true,
+  timeoutMs: number | false = false
 ): {
   promise: Promise<void>
   callback: CALLBACK
-  resolved: Ref<boolean>
-  error: Ref<Error | undefined>
+  resolved: ComputedRef<boolean>
+  error: ComputedRef<Error | undefined>
 } {
   const errorRef = ref<Error>()
   let result: Error | true
@@ -20,7 +21,8 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
         errorRef.value = r
         result = r
         if (stopOnError) {
-          resolveEffect()
+          // resolveEffect()
+          throw r
         }
       } else {
         resolvedRef.value = true
@@ -30,16 +32,30 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
       }
     },
   }) as CALLBACK
-  const promise = new Promise<void>((res) => {
+  const promise = new Promise<void>((res, rej) => {
     if ((stopOnError && result instanceof Error) || result === true) {
       return
     }
-    resolveEffect = res
+    let timeout: undefined | ReturnType<typeof setTimeout> = undefined
+    if (timeoutMs) {
+      timeout = setTimeout(() => {
+        const e = new Error('timeout!')
+        errorRef.value = e
+        rej(e)
+      }, timeoutMs)
+    }
+    resolveEffect = () => {
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = undefined
+      }
+      res()
+    }
   })
   return {
     promise,
     callback: proxyResolve,
-    resolved: resolvedRef,
-    error: errorRef,
+    resolved: computed(() => resolvedRef.value),
+    error: computed(() => errorRef.value),
   }
 }

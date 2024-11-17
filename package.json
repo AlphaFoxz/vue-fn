@@ -23,7 +23,7 @@
     "build:pack": "vite build && node scripts/gen-package-info.mjs",
     "build:sync": "ncp ./README.md ./dist/README.md",
     "verify": "tsc -p tsconfig.build.json --composite false",
-    "test": "npx jest"
+    "test": "npx jest --watchAll --no-cache --detectOpenHandles"
   },
   "peerDependencies": {
     "@vue/reactivity": ">=3.5.0",
