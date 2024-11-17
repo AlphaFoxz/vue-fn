@@ -1,6 +1,10 @@
 import { customRef, Ref, shallowRef, ShallowRef, watch } from 'vue'
 import { genId } from './common'
 
+type InferSharedRefs<T extends Record<string, any>> = {
+  [K in keyof T]: Ref<T[K]>
+}
+
 type SharedSyncMessage = {
   t: 'U'
   k: string
@@ -30,37 +34,47 @@ export function createSharedFactory(channel: BroadcastChannel) {
       }
     }
   }
+
+  function sharedRef<T>(name: string, value: T) {
+    setTimeout(() => channel.postMessage({ t: 'R', k: name }))
+    const id = genId(name)
+    map[id] = { data: shallowRef(value), trigger: () => {} }
+    watch(map[id].data, (n: any, o: any) => {
+      if (n !== o) {
+        value = n
+        map[id].trigger()
+      }
+    })
+    const r = customRef((track, trigger) => {
+      return {
+        get() {
+          track()
+          return value
+        },
+        set(newValue: T) {
+          map[id].trigger = trigger
+          if (value === newValue) {
+            return
+          }
+          map[id].data.value = newValue
+          value = newValue
+          channel.postMessage({ t: 'U', k: id, v: newValue })
+          trigger()
+        },
+      }
+    })
+    r.value = value
+    return r
+  }
+
   return {
-    sharedRef: <T>(name: string, value: T) => {
-      setTimeout(() => channel.postMessage({ t: 'R', k: name }), 1)
-      const id = genId(name)
-      map[id] = { data: shallowRef(value), trigger: () => {} }
-      watch(map[id].data, (n: any, o: any) => {
-        if (n !== o) {
-          value = n
-          map[id].trigger()
-        }
-      })
-      const r = customRef((track, trigger) => {
-        return {
-          get() {
-            track()
-            return value
-          },
-          set(newValue: T) {
-            map[id].trigger = trigger
-            if (value === newValue) {
-              return
-            }
-            map[id].data.value = newValue
-            value = newValue
-            channel.postMessage({ t: 'U', k: id, v: newValue })
-            trigger()
-          },
-        }
-      })
-      r.value = value
-      return r
+    // sharedRef,
+    sharedRefs: <T extends Record<string, any>>(values: T): InferSharedRefs<T> => {
+      const map: Record<string, Ref<any>> = {}
+      for (const entry of Object.entries(values)) {
+        map[entry[0]] = sharedRef(entry[0], entry[1])
+      }
+      return map as InferSharedRefs<T>
     },
   }
 }
@@ -70,14 +84,14 @@ export function createSharedSingletonAgg<
   ACTIONS extends Record<string, Function>
 >(
   channelName: string,
-  init: (context: { sharedRef: ReturnType<typeof createSharedFactory>['sharedRef'] }) => {
+  init: (context: { sharedRefs: ReturnType<typeof createSharedFactory>['sharedRefs'] }) => {
     states: STATES
     actions: ACTIONS
   }
 ): { api: { states: STATES; actions: ACTIONS } } {
   const channel = new BroadcastChannel(channelName)
   const sharedFactory = createSharedFactory(channel)
-  const result = init({ sharedRef: sharedFactory.sharedRef })
+  const result = init({ sharedRefs: sharedFactory.sharedRefs })
 
   const states = (result.states || {}) as STATES
   const actions = (result.actions || {}) as ACTIONS

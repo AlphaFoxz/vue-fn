@@ -3,12 +3,12 @@ import { createSharedSingletonAgg } from '..'
 
 it('', async () => {
   const agg1 = createSharedSingletonAgg('test', (context) => {
-    const name = context.sharedRef('name', 'Init')
+    const sharedRefs = context.sharedRefs({ name: 'Init' })
     return {
-      states: { name },
+      states: { name: sharedRefs.name },
       actions: {
         setName(n: string) {
-          name.value = n
+          sharedRefs.name.value = n
         },
       },
     }
@@ -16,12 +16,12 @@ it('', async () => {
 
   await new Promise((resolve) => setTimeout(resolve, 30))
   const agg2 = createSharedSingletonAgg('test', (context) => {
-    const name = context.sharedRef('name', '')
+    const sharedRefs = context.sharedRefs({ name: '' })
     return {
-      states: { name },
+      states: { name: sharedRefs.name },
       actions: {
         setName(n: string) {
-          name.value = n
+          sharedRefs.name.value = n
         },
       },
     }
