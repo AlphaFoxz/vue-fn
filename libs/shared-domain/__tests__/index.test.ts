@@ -29,4 +29,7 @@ it('', async () => {
   agg1.api.actions.setName('Andy')
   await new Promise((resolve) => setTimeout(resolve, 5))
   expect((agg2.api.states.name as any).value).toBe('Andy')
+  agg1.api.actions.setName('Bob')
+  await new Promise((resolve) => setTimeout(resolve, 5))
+  expect((agg2.api.states.name as any).value).toBe('Bob')
 })

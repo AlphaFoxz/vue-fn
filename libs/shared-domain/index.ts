@@ -1,4 +1,4 @@
-import { customRef, shallowRef, ShallowRef, watch } from 'vue'
+import { customRef, Ref, shallowRef, ShallowRef, watch } from 'vue'
 import { genId } from './common'
 
 type SharedSyncMessage = {
@@ -7,16 +7,32 @@ type SharedSyncMessage = {
   v: any
 }
 
+type RequireMessage = {
+  t: 'R'
+  k: string
+}
+
 export function createSharedFactory(channel: BroadcastChannel) {
   const map: Record<string, ShallowRef<any>> = {}
   channel.onmessage = (event) => {
     if (event.data.t === 'U') {
       const syncMessage = event.data as SharedSyncMessage
-      map[syncMessage.k].value = syncMessage.v
+      if (!map[syncMessage.k]) {
+        map[syncMessage.k] = shallowRef(syncMessage.v)
+      } else if (map[syncMessage.k].value !== syncMessage.v) {
+        map[syncMessage.k].value = syncMessage.v
+      }
+    }
+    if (event.data.t === 'R') {
+      const requireMessage = event.data as RequireMessage
+      if (map[requireMessage.k]) {
+        channel.postMessage({ t: 'U', k: requireMessage.k, v: map[requireMessage.k].value })
+      }
     }
   }
   return {
     sharedRef: <T>(name: string, value: T) => {
+      channel.postMessage({ t: 'R', k: name })
       const id = genId(name)
       map[id] = shallowRef(value)
       let tri: () => void = () => {}
@@ -45,19 +61,22 @@ export function createSharedFactory(channel: BroadcastChannel) {
   }
 }
 
-export function createSharedSingletonAgg(
+export function createSharedSingletonAgg<
+  STATES extends Record<string, Ref<any>>,
+  ACTIONS extends Record<string, Function>
+>(
   channelName: string,
   init: (context: { sharedRef: ReturnType<typeof createSharedFactory>['sharedRef'] }) => {
-    states: Record<string, object>
-    actions: Record<string, Function>
+    states: STATES
+    actions: ACTIONS
   }
-) {
+): { api: { states: STATES; actions: ACTIONS } } {
   const channel = new BroadcastChannel(channelName)
   const sharedFactory = createSharedFactory(channel)
   const result = init({ sharedRef: sharedFactory.sharedRef })
 
-  const states = (result.states || {}) as unknown as Record<string, object>
-  const actions = (result.actions || {}) as unknown as Record<string, Function>
+  const states = (result.states || {}) as STATES
+  const actions = (result.actions || {}) as ACTIONS
   return {
     api: { states, actions },
   }
