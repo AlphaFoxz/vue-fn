@@ -32,7 +32,7 @@ export function createSharedFactory(channel: BroadcastChannel) {
   }
   return {
     sharedRef: <T>(name: string, value: T) => {
-      channel.postMessage({ t: 'R', k: name })
+      setTimeout(() => channel.postMessage({ t: 'R', k: name }), 1)
       const id = genId(name)
       map[id] = shallowRef(value)
       let tri: () => void = () => {}
@@ -40,7 +40,7 @@ export function createSharedFactory(channel: BroadcastChannel) {
         if (n !== o) {
           value = n
           tri()
-          channel.postMessage({ t: 'U', k: id, v: n })
+          // channel.postMessage({ t: 'U', k: id, v: n })
         }
       })
       return customRef((track, trigger) => {
@@ -53,6 +53,7 @@ export function createSharedFactory(channel: BroadcastChannel) {
             map[id].value = newValue
             value = newValue
             tri = trigger
+            channel.postMessage({ t: 'U', k: id, v: newValue })
             trigger()
           },
         }
