@@ -47,8 +47,11 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
     }
   )
   const promise = new Promise<void>((res, rej) => {
-    if ((finishOnError && result instanceof Error) || result === true) {
+    if (finishOnError && result instanceof Error) {
       rej(result)
+      return
+    } else if (result === true) {
+      res()
       return
     }
     let timeout: undefined | ReturnType<typeof setTimeout> = undefined

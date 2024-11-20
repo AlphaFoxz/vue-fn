@@ -1,9 +1,5 @@
 import { ref } from '@vue/reactivity'
-import {
-  createRequestEvent,
-  createMultiInstanceAgg,
-  createPluginHelperByCreator as createPluginHelperByAggCreator,
-} from '..'
+import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator } from '..'
 import { it } from '@jest/globals'
 
 const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
