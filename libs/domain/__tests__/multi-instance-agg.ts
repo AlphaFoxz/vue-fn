@@ -1,12 +1,19 @@
 import { ref } from 'vue'
-import { type DomainSetupPlugin, createRequestEvent, createMultiInstanceAgg, createPluginHelperByCreator } from '..'
+import {
+  createRequestEvent,
+  createMultiInstanceAgg,
+  createPluginHelperByCreator as createPluginHelperByAggCreator,
+} from '..'
 import { it } from '@jest/globals'
 
 const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
-const plugins: DomainSetupPlugin<any>[] = []
 
 function createAgg(id: string) {
   return createMultiInstanceAgg(id, (context) => {
+    context.onScopeDispose(() => {
+      delete aggMap[id]
+    })
+
     const name = ref(id)
     const loadData = ref<string>()
     const needLoadDataEvent = createRequestEvent({}, (s: string) => {
@@ -19,7 +26,7 @@ function createAgg(id: string) {
       states: {
         name,
         loadData,
-        initialized: context.initialized,
+        initialized: context.isInitialized,
       },
       events: {
         needLoadData: needLoadDataEvent,
@@ -31,21 +38,15 @@ function createAgg(id: string) {
   })
 }
 
-export const PluginHelper = createPluginHelperByCreator(createAgg)
+export const PluginHelper = createPluginHelperByAggCreator(createAgg)
 
 export function useMultiInstaceAgg(id: string) {
   if (!aggMap[id]) {
     const agg = createAgg(id)
-    for (const p of plugins as any) {
-      agg.trySetupPlugin(p)
-    }
+    PluginHelper.registerAgg(agg)
     aggMap[id] = agg
   }
   return aggMap[id].api
 }
 
-export function registerSetupPlugin(p: ReturnType<typeof PluginHelper.defineSetupPlugin>) {
-  plugins.push(p)
-}
-
-it('创建单例', () => {})
+it('创建多实例', () => {})

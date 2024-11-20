@@ -45,39 +45,39 @@ it('createRequestEvent 函数的回调', async () => {
   expect(succeed).toBeTruthy()
 })
 
-// it('createRequestEvent 错误后停止Promise', async () => {
-//   const listenerCounter = ref(0)
-//   let succeed = false
-//   function createInitEvent() {
-//     const event = createRequestEvent(
-//       {},
-//       (name: string) => {
-//         listenerCounter.value++
-//         if (name !== 'Andy') {
-//           return new Error('incorrect name')
-//         }
-//         succeed = true
-//       },
-//       true,
-//       5
-//     )
-//     return event
-//   }
-//   const watchedEventsCounter = ref(0)
-//   const initEvent = createInitEvent()
-//   initEvent.toApi().watchPublishRequest(({ reply }) => {
-//     watchedEventsCounter.value++
-//     reply('wong')
-//   })
-//   initEvent.toApi().watchPublishRequest(({ reply }) => {
-//     watchedEventsCounter.value++
-//     reply('Andy')
-//   })
-//   await initEvent.publishRequest({ name: 'Andy' }).catch((_) => {})
-//   expect(succeed).toBe(false)
-//   expect(listenerCounter.value).toBe(1)
-//   expect(watchedEventsCounter.value).toBe(1)
-// })
+it('createRequestEvent 错误后停止Promise', async () => {
+  const listenerCounter = ref(0)
+  let succeed = false
+  function createInitEvent() {
+    const event = createRequestEvent(
+      {},
+      (name: string) => {
+        listenerCounter.value++
+        if (name !== 'Andy') {
+          return new Error('incorrect name')
+        }
+        succeed = true
+      },
+      true,
+      5
+    )
+    return event
+  }
+  const watchedEventsCounter = ref(0)
+  const initEvent = createInitEvent()
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedEventsCounter.value++
+    reply('wong')
+  })
+  initEvent.toApi().watchPublishRequest(({ reply }) => {
+    watchedEventsCounter.value++
+    reply('Andy')
+  })
+  await initEvent.publishRequest({ name: 'Andy' }).catch((_) => {})
+  expect(succeed).toBe(false)
+  expect(listenerCounter.value).toBe(1)
+  expect(watchedEventsCounter.value).toBe(1)
+})
 
 it('createRequestEvent 错误后不停止Promise', async () => {
   const listenerCounter = ref(0)

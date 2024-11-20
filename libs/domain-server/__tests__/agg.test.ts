@@ -4,7 +4,7 @@ import { computed, isReadonly, onWatcherCleanup, reactive, ref, shallowReactive,
 
 describe('测试聚合整体', () => {
   it('createUnmountableAgg destory副作用处理', async () => {
-    let clearFlag = false
+    let innerClearFlag = false
     const agg = createMultiInstanceAgg(1, (context) => {
       const a = ref('a')
       const aPlus = ref(a.value + '+')
@@ -12,7 +12,7 @@ describe('测试聚合整体', () => {
         aPlus.value = v + '+'
       })
       context.onScopeDispose(() => {
-        clearFlag = true
+        innerClearFlag = true
       })
       return {
         states: { a, aPlus },
@@ -29,7 +29,7 @@ describe('测试聚合整体', () => {
     expect(agg.api.states.aPlus.value).toBe('a1+')
     agg.api.destroy()
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(clearFlag).toBe(true)
+    expect(innerClearFlag).toBe(true)
     agg.api.actions.setA('b')
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(agg.api.states.aPlus.value).toBe('a1+')

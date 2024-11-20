@@ -220,7 +220,7 @@ it('聚合onCreated创建', async () => {
     })
     return {
       states: {
-        initialized: context.initialized,
+        initialized: context.isInitialized,
       },
       events: {
         startInit: startInitEvent,
@@ -245,47 +245,15 @@ it('聚合onCreated创建', async () => {
   expect(agg.api.states.initialized.value).toBe(true)
 })
 
-it('聚合外置onBeforeInitialize 钩子', async () => {
-  const data = {
-    inner: false,
-    outer: false,
-  }
-  const agg = createSingletonAgg((context) => {
-    context.onBeforeInitialize(() => {
-      data.inner = true
-    })
-    return {
-      states: {
-        initialized: context.initialized,
-      },
-      actions: {
-        untilInitialized: async () => {
-          await context.untilInitialized
-        },
-      },
-    }
-  })
-
-  expect(agg.api.states.initialized.value).toBe(false)
-  agg.tryOnBeforeInitialize(() => {
-    data.outer = true
-  })
-  await agg.api.actions.untilInitialized()
-  expect(agg.api.states.initialized.value).toBe(true)
-  expect(data.inner).toBe(true)
-  expect(data.outer).toBe(true)
-})
-
 it('注册单例插件', async () => {
-  const PLUGIN = singletonExample.PluginHelper.defineSetupPlugin({
-    register: (agg) => {
-      agg.api.events.needLoadData.watchPublishRequest(({ reply }) => {
+  const PLUGIN = singletonExample.PluginHelper.createSetupPlugin({
+    mount({ api }) {
+      api.events.needLoadData.watchPublishRequest(({ reply }) => {
         reply('Hello')
       })
     },
   })
-
-  singletonExample.registerSetupPlugin(PLUGIN)
+  singletonExample.PluginHelper.registerPlugin(PLUGIN)
   const agg = singletonExample.useSingletonAgg()
   expect(agg.states.initialized.value).toBe(false)
   await agg.actions.untilInitialized()
@@ -294,14 +262,14 @@ it('注册单例插件', async () => {
 })
 
 it('注册多实例插件', async () => {
-  const PLUGIN = multiInstanceExample.PluginHelper.defineSetupPlugin({
-    register: (agg) => {
-      agg.api.events.needLoadData.watchPublishRequest(({ reply }) => {
+  const PLUGIN = multiInstanceExample.PluginHelper.createSetupPlugin({
+    mount({ api }) {
+      api.events.needLoadData.watchPublishRequest(({ reply }) => {
         reply('Hello')
       })
     },
   })
-  multiInstanceExample.registerSetupPlugin(PLUGIN)
+  multiInstanceExample.PluginHelper.registerPlugin(PLUGIN)
   const agg = multiInstanceExample.useMultiInstaceAgg('1')
   expect(agg.states.initialized.value).toBe(false)
   await agg.actions.untilInitialized()

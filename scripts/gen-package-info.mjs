@@ -24,7 +24,7 @@ modules.forEach((module) => {
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJsonContent, null, 2), 'utf8')
 })
 
-console.log('Package.json files generated for each module.')
+console.log('Generated `package.json` for each module.')
 
 const packageJsons = readPackageSync()
 const publishPackageInfo = {

@@ -16,8 +16,7 @@ import {
   DomainEvent,
   DomainRequestEvent,
 } from './event'
-import { createPromiseCallback } from './common'
-import { DomainPlugin } from './plugin'
+import { createPromiseCallback, genUuidv4 } from './common'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -164,10 +163,12 @@ export type DomainMultiInstanceAgg<
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
+  readonly _hash: string
+  readonly type: 'MultiInstance'
   readonly id: ID
   readonly api: DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS>
-  readonly tryOnBeforeInitialize: (fn: () => void) => void
-  readonly trySetupPlugin: (plugin: DomainPlugin<DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS>>) => void
+  readonly isInitialized: ComputedRef<boolean>
+  readonly untilInitialized: () => Promise<void>
 }
 
 export type DomainSingletonAgg<
@@ -175,9 +176,11 @@ export type DomainSingletonAgg<
   ACTIONS extends CustomerActionRecords<ACTIONS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
+  readonly _hash: string
+  readonly type: 'Singleton'
   readonly api: DomainSingletonAggApi<STATES, ACTIONS, EVENTS>
-  readonly tryOnBeforeInitialize: (fn: () => void) => void
-  readonly trySetupPlugin: (plugin: DomainPlugin<DomainSingletonAgg<STATES, ACTIONS, EVENTS>>) => void
+  readonly isInitialized: ComputedRef<boolean>
+  readonly untilInitialized: () => Promise<void>
 }
 
 export function createMultiInstanceAgg<
@@ -192,7 +195,7 @@ export function createMultiInstanceAgg<
     onScopeDispose: (fn: () => void, failSilently?: boolean) => void
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
-    initialized: ComputedRef<boolean>
+    isInitialized: ComputedRef<boolean>
     untilInitialized: Promise<void>
   }) => {
     states?: STATES
@@ -202,10 +205,14 @@ export function createMultiInstanceAgg<
   }
 ): DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS> {
   // 声明 生命周期 - init
-  const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
+  const {
+    callback: initialize,
+    promise: untilInitialized,
+    resolved: isInitialized,
+  } = createPromiseCallback(() => {}, false, 5000)
   function onBeforeInitialize(fn: () => void) {
-    if (initialized.value === true) {
-      throw new Error('already initialized')
+    if (isInitialized.value === true) {
+      throw new Error('Agg already initialized')
     }
     beforeInitializeTasks.push(fn())
   }
@@ -226,7 +233,7 @@ export function createMultiInstanceAgg<
         Promise.resolve().then(fn)
       },
       onBeforeInitialize,
-      initialized: computed(() => initialized.value),
+      isInitialized: computed(() => isInitialized.value),
       untilInitialized,
     })
   )!
@@ -255,7 +262,9 @@ export function createMultiInstanceAgg<
       scope.stop()
     }) as DomainDestroyFunction
   }
-  return {
+  return shallowReadonly({
+    _hash: genUuidv4(),
+    type: 'MultiInstance',
     id,
     api: createMultiInstanceAggApi({
       states,
@@ -263,23 +272,13 @@ export function createMultiInstanceAgg<
       events: eventsExt as unknown as EVENTS,
       destroy,
     }),
-    tryOnBeforeInitialize(fn: () => void) {
-      if (initialized.value) {
-        throw new Error('Can not setup after initialized')
-      }
-      beforeInitializeTasks.push(fn())
+    isInitialized,
+    async untilInitialized() {
+      return await untilInitialized.catch((e: Error) => {
+        throw new Error(`Failed to initialize Agg: ${e.message}\nStack : ${e.stack || 'unkown'}`)
+      })
     },
-    trySetupPlugin(plugin: DomainPlugin<DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS>>) {
-      if (initialized.value) {
-        throw new Error('Can not setup after initialized')
-      }
-      beforeInitializeTasks.push(
-        (() => {
-          plugin.register(this)
-        })()
-      )
-    },
-  }
+  })
 }
 
 export function createSingletonAgg<
@@ -290,7 +289,7 @@ export function createSingletonAgg<
   init: (context: {
     onCreated: (fn: () => void) => void
     onBeforeInitialize: (fn: () => void) => void
-    initialized: ComputedRef<boolean>
+    isInitialized: ComputedRef<boolean>
     untilInitialized: Promise<void>
   }) => {
     states?: STATES
@@ -298,8 +297,15 @@ export function createSingletonAgg<
     events?: EVENTS
   }
 ): DomainSingletonAgg<STATES, ACTIONS, EVENTS> {
-  const { callback: initialize, promise: untilInitialized, resolved: initialized } = createPromiseCallback(() => {})
+  const {
+    callback: initialize,
+    promise: untilInitialized,
+    resolved: isInitialized,
+  } = createPromiseCallback(() => {}, false, 5000)
   function onBeforeInitialize(fn: () => void) {
+    if (isInitialized.value === true) {
+      throw new Error('Agg already initialized')
+    }
     beforeInitializeTasks.push(fn())
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
@@ -309,7 +315,7 @@ export function createSingletonAgg<
       Promise.resolve().then(fn)
     },
     onBeforeInitialize,
-    initialized: computed(() => initialized.value),
+    isInitialized: computed(() => isInitialized.value),
     untilInitialized,
   })
   setTimeout(() =>
@@ -322,27 +328,19 @@ export function createSingletonAgg<
   const actions = (result.actions || {}) as ACTIONS
   const events = (result.events || {}) as EVENTS
   return {
+    _hash: genUuidv4(),
+    type: 'Singleton',
     api: createAggApi({
       states,
       actions,
       events,
       destroy: () => {},
     }),
-    tryOnBeforeInitialize(fn: () => void) {
-      if (initialized.value) {
-        throw new Error('Can not setup after initialized')
-      }
-      beforeInitializeTasks.push(fn())
-    },
-    trySetupPlugin(plugin: DomainPlugin<DomainSingletonAgg<STATES, ACTIONS, EVENTS>>) {
-      if (initialized.value) {
-        throw new Error('Can not setup after initialized')
-      }
-      beforeInitializeTasks.push(
-        (() => {
-          plugin.register(this)
-        })()
-      )
+    isInitialized,
+    async untilInitialized() {
+      return await untilInitialized.catch((e: Error) => {
+        throw new Error(`Failed to initialize Agg: ${e.message}\nStack : ${e.stack || 'unkown'}`)
+      })
     },
   }
 }

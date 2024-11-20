@@ -1,5 +1,5 @@
 import { ref } from '@vue/reactivity'
-import { type DomainSetupPlugin, createSingletonAgg, createRequestEvent, createPluginHelperByAgg } from '..'
+import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg } from '..'
 import { it } from '@jest/globals'
 
 const agg = createSingletonAgg((context) => {
@@ -13,7 +13,7 @@ const agg = createSingletonAgg((context) => {
   return {
     states: {
       loadData,
-      initialized: context.initialized,
+      initialized: context.isInitialized,
     },
     events: {
       needLoadData: needLoadDataEvent,
@@ -25,13 +25,10 @@ const agg = createSingletonAgg((context) => {
 })
 
 export const PluginHelper = createPluginHelperByAgg(agg)
+PluginHelper.registerAgg(agg)
 
 export function useSingletonAgg() {
   return agg.api
-}
-
-export function registerSetupPlugin(plugin: DomainSetupPlugin<typeof agg>) {
-  agg.trySetupPlugin(plugin)
 }
 
 it('创建单例', () => {})

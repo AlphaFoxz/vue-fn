@@ -40,6 +40,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
     {
       data: DeepReadonly<UnwrapNestedRefs<DATA>>
       reply: REPLY
+      onError: (e: Error) => void
       resolved: ComputedRef<boolean>
       error: ComputedRef<Error | undefined>
     }
@@ -48,13 +49,21 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   function updateEvent(
     data: UnwrapNestedRefs<DATA>,
     rep: REPLY,
+    onError: (e: Error) => void,
     resolved: ComputedRef<boolean>,
     error: ComputedRef<Error | undefined>
   ) {
     const newVer = largeNumberIncrease(version.value)
+    const handle = watch([resolved, error], ([r, e]) => {
+      if (!map[newVer] || r || (stopOnError && e)) {
+        handle()
+        delete map[newVer]
+      }
+    })
     map[newVer] = {
       data: readonly(data) as DeepReadonly<UnwrapNestedRefs<DATA>>,
       reply: rep,
+      onError,
       resolved,
       error,
     }
@@ -64,18 +73,10 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   const watchFn = (
     cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string; reply: REPLY }) => void
   ) => {
-    let tmpHandle: WatchHandle | undefined = undefined
     const handle = watch(version, (newVersion) => {
       if (!map[newVersion] || map[newVersion].resolved.value || (stopOnError && map[newVersion].error.value)) {
         return
       }
-      tmpHandle = watch([map[newVersion].resolved, map[newVersion].error], ([resolved, error]) => {
-        if (!map[newVersion] || resolved || (stopOnError && error)) {
-          delete map[newVersion]
-          tmpHandle?.()
-          tmpHandle = undefined
-        }
-      })
       try {
         cb({
           data: map[newVersion].data,
@@ -83,7 +84,9 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
           reply: map[newVersion].reply,
         })
       } catch (e) {
-        // console.error('=================', map[newVersion].error.value)
+        if (!map[newVersion].error.value) {
+          map[newVersion].onError(e as Error)
+        }
       }
     })
     watchHandles.push(handle)
@@ -94,8 +97,8 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   }
 
   const publishFn = async (data: UnwrapNestedRefs<DATA>) => {
-    const { promise, callback: res, resolved, error } = createPromiseCallback(reply, stopOnError, timeoutMs)
-    updateEvent(data, res, resolved, error)
+    const { promise, callback: rep, resolved, error, onError } = createPromiseCallback(reply, stopOnError, timeoutMs)
+    updateEvent(data, rep, onError, resolved, error)
     await promise
   }
 

@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      uuid:
+        specifier: ^11.0.3
+        version: 11.0.3
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0
@@ -1498,6 +1502,10 @@ packages:
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
+
+  uuid@11.0.3:
+    resolution: {integrity: sha512-d0z310fCWv5dJwnX1Y/MncBAqGMKEzlBb1AOf7z9K8ALnd0utBX/msg/fA0+sbyN1ihbMsLhrBlnl1ak7Wa0rg==}
+    hasBin: true
 
   v8-to-istanbul@9.3.0:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
@@ -3248,6 +3256,8 @@ snapshots:
       browserslist: 4.24.2
       escalade: 3.2.0
       picocolors: 1.1.1
+
+  uuid@11.0.3: {}
 
   v8-to-istanbul@9.3.0:
     dependencies:
