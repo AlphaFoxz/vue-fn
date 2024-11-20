@@ -207,6 +207,7 @@ export function createMultiInstanceAgg<
   // 声明 生命周期 - init
   const {
     callback: initialize,
+    onError: onInitializeError,
     promise: untilInitialized,
     resolved: isInitialized,
   } = createPromiseCallback(() => {}, false, 5000)
@@ -218,9 +219,13 @@ export function createMultiInstanceAgg<
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
   setTimeout(() =>
-    Promise.all(beforeInitializeTasks).then(() => {
-      initialize()
-    })
+    Promise.all(beforeInitializeTasks)
+      .then(() => {
+        initialize()
+      })
+      .catch((e: Error) => {
+        onInitializeError(e)
+      })
   )
   const scope = effectScope()
   const result = scope.run(() =>
@@ -299,6 +304,7 @@ export function createSingletonAgg<
 ): DomainSingletonAgg<STATES, ACTIONS, EVENTS> {
   const {
     callback: initialize,
+    onError: onInitializeError,
     promise: untilInitialized,
     resolved: isInitialized,
   } = createPromiseCallback(() => {}, false, 5000)
@@ -319,9 +325,13 @@ export function createSingletonAgg<
     untilInitialized,
   })
   setTimeout(() =>
-    Promise.all(beforeInitializeTasks).then(() => {
-      initialize()
-    })
+    Promise.all(beforeInitializeTasks)
+      .then(() => {
+        initialize()
+      })
+      .catch((e: Error) => {
+        onInitializeError(e)
+      })
   )
 
   const states = (result.states || {}) as STATES
