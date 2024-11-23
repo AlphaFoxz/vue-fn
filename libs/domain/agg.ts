@@ -34,7 +34,7 @@ type InferDomainEvent<EVENT extends DomainEvent<any, any>> = EVENT extends Domai
   : EVENT extends DomainRequestEvent<infer DATA, infer CALLBACK>
   ? DomainRequestEvent<DATA, CALLBACK>
   : never
-type InferDomainEventApi<EVENT extends DomainEvent<any, any>> = ReturnType<InferDomainEvent<EVENT>['toApi']>
+type InferDomainEventApi<EVENT extends DomainEvent<any, any>> = InferDomainEvent<EVENT>['api']
 
 type CustomerStateRecords<T> = keyof T extends never ? {} : Record<string, object>
 type CustomerActionRecords<T> = keyof T extends never ? {} : Record<string, Function>
@@ -60,7 +60,7 @@ export type DomainEventsApi<EVENTS extends CustomerEventRecords<any>> = EVENTS e
     }>
   : EVENTS
 
-export type DomainUnmountableEventsApi<EVENTS extends CustomerEventRecords<EVENTS>> = EVENTS extends Record<
+export type DomainMultiInstanceEventsApi<EVENTS extends CustomerEventRecords<EVENTS>> = EVENTS extends Record<
   string,
   DomainRequestEvent<any, any> | DomainBroadcastEvent<any>
 >
@@ -78,7 +78,7 @@ export type DomainMultiInstanceAggApi<
 > = Readonly<{
   states: DomainStatesApi<STATES>
   actions: DomainActionsApi<ACTIONS>
-  events: DomainUnmountableEventsApi<EVENTS>
+  events: DomainMultiInstanceEventsApi<EVENTS>
   destroy: DomainDestroyFunction
 }>
 
@@ -147,7 +147,7 @@ function createAggApiContent<
   const events = {} as DomainEventsApi<EVENTS>
   const optionEvents = option.events as { [k: string]: DomainRequestEvent<any, any> | DomainBroadcastEvent<any> }
   for (const k in option.events) {
-    ;(events as any)[k] = optionEvents[k].toApi()
+    ;(events as any)[k] = optionEvents[k].api
   }
   return shallowReadonly({
     states,

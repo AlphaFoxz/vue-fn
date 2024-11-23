@@ -14,21 +14,21 @@ import { createPromiseCallback } from './common'
 
 export type DomainEventData = { [key: string]: any }
 
-export type DomainRequestEventCallback = (...args: any[]) => void | Error
+export type DomainRequestEventReply = (...args: any[]) => void | Error
 
-export type DomainEvent<DATA extends DomainEventData, CALLBACK extends DomainRequestEventCallback> =
-  | DomainRequestEvent<DATA, CALLBACK>
+export type DomainEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> =
+  | DomainRequestEvent<DATA, REPLY>
   | DomainBroadcastEvent<DATA>
 
-export type DomainDestroyedEventApi = ReturnType<ReturnType<typeof createBroadcastEvent<{}>>['toApi']>
+export type DomainDestroyedEventApi = ReturnType<typeof createBroadcastEvent<{}>>['api']
 
-export type DomainRequestEvent<DATA extends DomainEventData, CALLBACK extends DomainRequestEventCallback> = ReturnType<
-  typeof createRequestEvent<DATA, CALLBACK>
+export type DomainRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> = ReturnType<
+  typeof createRequestEvent<DATA, REPLY>
 >
 
 export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<typeof createBroadcastEvent<DATA>>
 
-export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventCallback>(
+export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply>(
   _: DATA,
   reply: REPLY,
   stopOnError = false,
@@ -110,9 +110,7 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   return {
     watchHandles,
     publishRequest: publishFn,
-    toApi() {
-      return api
-    },
+    api,
   }
 }
 
@@ -152,14 +150,11 @@ export function createBroadcastEvent<DATA extends DomainEventData>(_: DATA) {
     watchPublish: watchFn,
   }
   return {
-    ...api,
     watchHandles,
     publish: async (data: UnwrapNestedRefs<DATA>) => {
       updateEvent(data)
     },
-    toApi() {
-      return api
-    },
+    api,
   }
 }
 

@@ -10,7 +10,7 @@ it('createRequestEvent 触发事件', async () => {
   }
   const event = register()
   const repo = { name: '', version: '0' }
-  event.toApi().watchPublishRequest(({ data, version, reply }) => {
+  event.api.watchPublishRequest(({ data, version, reply }) => {
     repo.name = data.name
     repo.version = version
     reply()
@@ -32,7 +32,7 @@ it('createRequestEvent 函数的回调', async () => {
     return event
   }
   const event = register()
-  event.toApi().watchPublishRequest(({ data, reply }) => {
+  event.api.watchPublishRequest(({ data, reply }) => {
     if (data.name === 'Andy') {
       succeed = true
       reply()
@@ -65,11 +65,11 @@ it('createRequestEvent 错误后停止Promise', async () => {
   }
   const watchedEventsCounter = ref(0)
   const initEvent = createInitEvent()
-  initEvent.toApi().watchPublishRequest(({ reply }) => {
+  initEvent.api.watchPublishRequest(({ reply }) => {
     watchedEventsCounter.value++
     reply('wong')
   })
-  initEvent.toApi().watchPublishRequest(({ reply }) => {
+  initEvent.api.watchPublishRequest(({ reply }) => {
     watchedEventsCounter.value++
     reply('Andy')
   })
@@ -98,11 +98,11 @@ it('createRequestEvent 错误后不停止Promise', async () => {
     return event
   }
   const initEvent = createInitEvent()
-  initEvent.toApi().watchPublishRequest(({ reply }) => {
+  initEvent.api.watchPublishRequest(({ reply }) => {
     watchedCounter.value++
     reply('wong')
   })
-  initEvent.toApi().watchPublishRequest(({ reply }) => {
+  initEvent.api.watchPublishRequest(({ reply }) => {
     watchedCounter.value++
     reply('Andy')
   })
@@ -129,7 +129,7 @@ it('createRequestEvent 超时', async () => {
   })
   expect(replyed).toBe(false)
   expect(throwed).toBe(true)
-  event.toApi().watchPublishRequest(({ reply }) => reply())
+  event.api.watchPublishRequest(({ reply }) => reply())
   await event.publishRequest({})
   expect(replyed).toBe(true)
 })
@@ -143,11 +143,11 @@ it('createBroadcastEvent 广播', async () => {
     return event
   }
   const initEvent = createInitEvent()
-  initEvent.toApi().watchPublish(({ data }) => {
+  initEvent.api.watchPublish(({ data }) => {
     ++listenCounter.value
     listenedName.value = data.name
   })
-  initEvent.toApi().watchPublish(({ data }) => {
+  initEvent.api.watchPublish(({ data }) => {
     ++listenCounter.value
     listenedName.value = data.name
   })

@@ -92,7 +92,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
     let age = 0
     const watchName = ref(name.value)
     const loadedEvent = createBroadcastEvent({ name, age })
-    loadedEvent.toApi().watchPublish(({ data }) => {
+    loadedEvent.api.watchPublish(({ data }) => {
       watchName.value = data.name
     })
     return {
