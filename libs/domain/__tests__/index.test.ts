@@ -245,7 +245,7 @@ it('聚合onCreated创建', async () => {
   expect(agg.api.states.initialized.value).toBe(true)
 })
 
-it('注册单例插件', async () => {
+it('注册单例插件-setupPlugin', async () => {
   const PLUGIN = singletonExample.PluginHelper.createSetupPlugin({
     mount({ api }) {
       api.events.needLoadData.watchPublishRequest(({ reply }) => {
@@ -261,7 +261,7 @@ it('注册单例插件', async () => {
   expect(agg.states.loadData.value).toEqual('Hello')
 })
 
-it('注册多实例插件', async () => {
+it('注册多实例插件-setupPlugin', async () => {
   const PLUGIN = multiInstanceExample.PluginHelper.createSetupPlugin({
     mount({ api }) {
       api.events.needLoadData.watchPublishRequest(({ reply }) => {
@@ -275,4 +275,64 @@ it('注册多实例插件', async () => {
   await agg.actions.untilInitialized()
   expect(agg.states.initialized.value).toBe(true)
   expect(agg.states.loadData.value).toEqual('Hello')
+})
+
+it('注册单例插件-hotSwapPlugin', async () => {
+  let oldVal = ''
+  let newVal = ''
+  const PLUGIN = singletonExample.PluginHelper.createHotSwapPlugin(() => {
+    let handler: Function | undefined = undefined
+    return {
+      mount({ api }) {
+        handler = api.events.onStatusChanged.watchPublish(({ data }) => {
+          oldVal = data.old
+          newVal = data.new
+        })
+        api.actions.setStatus('1')
+      },
+      unmount({ api }) {
+        handler?.()
+        api.actions.setStatus('0')
+      },
+    }
+  })
+  const agg = singletonExample.useSingletonAgg()
+  singletonExample.PluginHelper.registerPlugin(PLUGIN)
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(agg.states.status.value).toEqual('1')
+  expect(oldVal).toEqual('0')
+  expect(newVal).toEqual('1')
+  singletonExample.PluginHelper.unregisterPlugin(PLUGIN)
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(agg.states.status.value).toEqual('0')
+})
+
+it('注册多实例插件-hotSwapPlugin', async () => {
+  let oldVal = ''
+  let newVal = ''
+  const PLUGIN = multiInstanceExample.PluginHelper.createHotSwapPlugin(() => {
+    let handler: Function | undefined = undefined
+    return {
+      mount({ api }) {
+        handler = api.events.onStatusChanged.watchPublish(({ data }) => {
+          oldVal = data.old
+          newVal = data.new
+        })
+        api.actions.setStatus('1')
+      },
+      unmount({ api }) {
+        handler?.()
+        api.actions.setStatus('0')
+      },
+    }
+  })
+  const agg = multiInstanceExample.useMultiInstaceAgg('1')
+  multiInstanceExample.PluginHelper.registerPlugin(PLUGIN)
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(agg.states.status.value).toEqual('1')
+  expect(oldVal).toEqual('0')
+  expect(newVal).toEqual('1')
+  multiInstanceExample.PluginHelper.unregisterPlugin(PLUGIN)
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(agg.states.status.value).toEqual('0')
 })

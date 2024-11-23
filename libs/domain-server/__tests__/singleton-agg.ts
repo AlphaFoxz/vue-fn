@@ -1,25 +1,35 @@
 import { ref } from '@vue/reactivity'
-import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg } from '..'
+import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg, createBroadcastEvent } from '..'
 import { it } from '@jest/globals'
 
 const agg = createSingletonAgg((context) => {
+  const name = ref('')
+  const status = ref('0')
   const loadData = ref<string>()
-  const needLoadDataEvent = createRequestEvent({}, (s: string) => {
+  const needLoadData = createRequestEvent({}, (s: string) => {
     loadData.value = s
   })
   context.onBeforeInitialize(async () => {
-    await needLoadDataEvent.publishRequest({})
+    await needLoadData.publishRequest({}).catch(() => {})
   })
+  const onStatusChanged = createBroadcastEvent({ old: status, new: status })
   return {
+    events: {
+      needLoadData,
+      onStatusChanged,
+    },
     states: {
+      name,
+      status,
       loadData,
       initialized: context.isInitialized,
     },
-    events: {
-      needLoadData: needLoadDataEvent,
-    },
     actions: {
       untilInitialized: async () => context.untilInitialized,
+      setStatus(s: string) {
+        onStatusChanged.publish({ old: status.value, new: s })
+        status.value = s
+      },
     },
   }
 })
