@@ -17,7 +17,7 @@ export type DomainSetupPlugin<AGG extends DomainAgg> = {
 type DomainSetupPluginOptions<AGG extends DomainAgg> = ReturnType<DomainSetupPluginOptionsFn<AGG>>
 
 type DomainSetupPluginOptionsFn<AGG extends DomainAgg> = () => {
-  readonly mount: (util: { api: NonNullable<AGG>['api'] }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
 }
 
 export type DomainHotSwapPlugin<AGG extends DomainAgg> = {
@@ -30,8 +30,8 @@ export type DomainHotSwapPlugin<AGG extends DomainAgg> = {
 export type DomainHotSwapPluginOptions<AGG extends DomainAgg> = ReturnType<DomainHotSwapPluginOptionsFn<AGG>>
 
 export type DomainHotSwapPluginOptionsFn<AGG extends DomainAgg> = () => {
-  mount: (util: { api: NonNullable<AGG>['api'] }) => void
-  unmount: (util: { api: NonNullable<AGG>['api'] }) => void
+  mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
+  unmount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
 }
 
 function createPluginHelper<AGG extends DomainAgg>() {
@@ -72,11 +72,11 @@ function createPluginHelper<AGG extends DomainAgg>() {
       return Object.freeze({
         _hash: genUuidv4(),
         type: 'Setup',
-        mount(util: { api: NonNullable<AGG>['api']; isInitialized: ComputedRef<boolean> }) {
+        mount(util: { api: NonNullable<AGG>['api']; aggHash: string; isInitialized: ComputedRef<boolean> }) {
           if (util.isInitialized.value) {
             throw new Error('Can not setup after initialized')
           }
-          opts!.mount({ api: util.api })
+          opts!.mount({ api: util.api, aggHash: util.aggHash })
         },
       })
     },
