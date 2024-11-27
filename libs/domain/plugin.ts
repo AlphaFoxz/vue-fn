@@ -11,7 +11,7 @@ export type DomainPlugin<T extends DomainAgg> = DomainSetupPlugin<T> | DomainHot
 export type DomainSetupPlugin<AGG extends DomainAgg> = {
   readonly _hash: string
   readonly type: Extract<DomainPluginType, 'Setup'>
-  readonly mount: (util: { api: NonNullable<AGG>['api']; isInitialized: ComputedRef<boolean> }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string; isInitialized: ComputedRef<boolean> }) => void
 }
 
 type DomainSetupPluginOptions<AGG extends DomainAgg> = ReturnType<DomainSetupPluginOptionsFn<AGG>>
@@ -23,8 +23,8 @@ type DomainSetupPluginOptionsFn<AGG extends DomainAgg> = () => {
 export type DomainHotSwapPlugin<AGG extends DomainAgg> = {
   readonly _hash: string
   readonly type: Extract<DomainPluginType, 'HotSwap'>
-  readonly mount: (util: { api: NonNullable<AGG>['api'] }) => void
-  readonly unmount: (util: { api: NonNullable<AGG>['api'] }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
+  readonly unmount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
 }
 
 export type DomainHotSwapPluginOptions<AGG extends DomainAgg> = ReturnType<DomainHotSwapPluginOptionsFn<AGG>>
@@ -54,10 +54,10 @@ function createPluginHelper<AGG extends DomainAgg>() {
       aggRecords[agg._hash] = agg
       const applyedHotSwapPlugins: string[] = []
       for (const p of Object.values(setupPlugins)) {
-        p.mount({ api: agg.api, isInitialized: agg.isInitialized })
+        p.mount({ api: agg.api, aggHash: agg._hash, isInitialized: agg.isInitialized })
       }
       for (const p of Object.values(hotSwapPlugins)) {
-        p.mount({ api: agg.api })
+        p.mount({ api: agg.api, aggHash: agg._hash })
         applyedHotSwapPlugins.push(p._hash)
       }
       hotSwapPluginsCheck.set(agg, applyedHotSwapPlugins)
@@ -103,7 +103,11 @@ function createPluginHelper<AGG extends DomainAgg>() {
         }
         setupPlugins[plugin._hash] = plugin
         for (const k in aggRecords) {
-          plugin.mount({ api: aggRecords[k].api, isInitialized: aggRecords[k].isInitialized })
+          plugin.mount({
+            api: aggRecords[k].api,
+            aggHash: aggRecords[k]._hash,
+            isInitialized: aggRecords[k].isInitialized,
+          })
         }
       } else if (plugin.type === 'HotSwap') {
         hotSwapPlugins[plugin._hash] = plugin
@@ -112,7 +116,7 @@ function createPluginHelper<AGG extends DomainAgg>() {
             hotSwapPluginsCheck.has(aggRecords[k]) &&
             !hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin._hash)
           ) {
-            plugin.mount({ api: aggRecords[k].api })
+            plugin.mount({ api: aggRecords[k].api, aggHash: aggRecords[k]._hash })
             hotSwapPluginsCheck.get(aggRecords[k])!.push(plugin._hash)
           }
         }
@@ -129,7 +133,7 @@ function createPluginHelper<AGG extends DomainAgg>() {
             hotSwapPluginsCheck.has(aggRecords[k]) &&
             hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin._hash)
           ) {
-            plugin.unmount({ api: aggRecords[k].api })
+            plugin.unmount({ api: aggRecords[k].api, aggHash: aggRecords[k]._hash })
           }
         }
         delete hotSwapPlugins[plugin._hash]
