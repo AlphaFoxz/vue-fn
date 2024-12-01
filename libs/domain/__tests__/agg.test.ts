@@ -16,7 +16,7 @@ describe('测试聚合整体', () => {
       })
       return {
         states: { a, aPlus },
-        actions: {
+        commands: {
           setA(n: string) {
             a.value = n
           },
@@ -24,13 +24,13 @@ describe('测试聚合整体', () => {
       }
     })
 
-    agg.api.actions.setA('a1')
+    agg.api.commands.setA('a1')
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(agg.api.states.aPlus.value).toBe('a1+')
     agg.api.destroy()
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(innerClearFlag).toBe(true)
-    agg.api.actions.setA('b')
+    agg.api.commands.setA('b')
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(agg.api.states.aPlus.value).toBe('a1+')
   })
@@ -57,7 +57,7 @@ describe('测试聚合整体', () => {
           a,
           aPlus,
         },
-        actions: {
+        commands: {
           setA: (n: string) => {
             a.value = n
           },
@@ -69,12 +69,12 @@ describe('测试聚合整体', () => {
       })
     })()
 
-    api.actions.setA('a1')
+    api.commands.setA('a1')
     await new Promise((resolve) => setTimeout(resolve))
     expect(api.states.aPlus.value).toBe('a1+')
     api.destroy()
     await new Promise((resolve) => setTimeout(resolve))
-    api.actions.setA('b')
+    api.commands.setA('b')
     await new Promise((resolve) => setTimeout(resolve))
     expect(api.states.aPlus.value).toBe('a1+')
     await new Promise((resolve) => setTimeout(resolve))
@@ -86,7 +86,7 @@ describe('测试聚合整体', () => {
         states: {
           a: ref('a'),
         },
-        actions: {
+        commands: {
           log() {
             console.log('log')
           },
@@ -94,7 +94,7 @@ describe('测试聚合整体', () => {
       }
     })
     expect(isReadonly(agg.api.states.a)).toBe(true)
-    expect(agg.api.actions.log).toBeInstanceOf(Function)
+    expect(agg.api.commands.log).toBeInstanceOf(Function)
   })
 
   it('createUnmountableAgg 基本成员变量、方法验证', () => {
@@ -105,7 +105,7 @@ describe('测试聚合整体', () => {
         states: {
           a,
         },
-        actions: {
+        commands: {
           setA(n: string) {
             a.value = n
           },
@@ -113,7 +113,7 @@ describe('测试聚合整体', () => {
       }
     })
     expect(isReadonly(agg.api.states.a)).toBe(true)
-    expect(agg.api.actions.setA).toBeInstanceOf(Function)
+    expect(agg.api.commands.setA).toBeInstanceOf(Function)
   })
 })
 
@@ -131,7 +131,7 @@ describe('测试聚合的api部分', () => {
           c,
           d,
         },
-        actions: {
+        commands: {
           setA(s: string) {
             a.value = s
           },
@@ -147,7 +147,7 @@ describe('测试聚合的api部分', () => {
     expect(api.states.c.value.c1).toBe('c1')
     expect(api.states.d.value).toBe('d1')
 
-    expect(isReadonly(api.actions)).toBe(true)
+    expect(isReadonly(api.commands)).toBe(true)
     expect(api.states.a.value).toBe('a')
     expect(api.states.b.b1).toBe('b1')
     expect(api.states.b.b2).toBeInstanceOf(Function)
@@ -170,7 +170,7 @@ describe('测试聚合的api部分', () => {
           y,
           z,
         },
-        actions: {
+        commands: {
           setX1(n: number) {
             x.content.x1.inner = n
           },
@@ -213,12 +213,12 @@ describe('测试聚合的api部分', () => {
     const dy2 = computed(() => api.states.y.value.content.y2)
     const dz1 = computed(() => api.states.z.content.z1.inner)
     const dz2 = computed(() => api.states.z.content.z2.value)
-    api.actions.setX1(2)
-    api.actions.setX2(2)
-    api.actions.setY1(2)
-    api.actions.setY2(2)
-    api.actions.setZ1(2)
-    api.actions.setZ2(2)
+    api.commands.setX1(2)
+    api.commands.setX2(2)
+    api.commands.setY1(2)
+    api.commands.setY2(2)
+    api.commands.setZ1(2)
+    api.commands.setZ2(2)
     await new Promise((resolve) => setTimeout(resolve))
     expect(dx1.value).toBe(2)
     expect(dx2.value).toBe(2)
@@ -226,9 +226,9 @@ describe('测试聚合的api部分', () => {
     expect(dy2.value).toBe(2)
     expect(dz1.value).toBe(2)
     expect(dz2.value).toBe(undefined)
-    api.actions.selfXpp()
-    api.actions.selfYpp()
-    api.actions.selfZpp()
+    api.commands.selfXpp()
+    api.commands.selfYpp()
+    api.commands.selfZpp()
     await new Promise((resolve) => setTimeout(resolve))
     expect(dx1.value).toBe(3)
     expect(dx2.value).toBe(3)
@@ -260,7 +260,7 @@ describe('测试聚合的api部分', () => {
           a,
           aPlus,
         },
-        actions: {
+        commands: {
           setA: (n: string) => {
             a.value = n
           },
@@ -272,12 +272,12 @@ describe('测试聚合的api部分', () => {
       })
     })()
 
-    api.actions.setA('a1')
+    api.commands.setA('a1')
     await new Promise((resolve) => setTimeout(resolve))
     expect(api.states.aPlus.value).toBe('a1+')
     api.destroy()
     await new Promise((resolve) => setTimeout(resolve))
-    api.actions.setA('b')
+    api.commands.setA('b')
     await new Promise((resolve) => setTimeout(resolve))
     expect(api.states.aPlus.value).toBe('a1+')
     await new Promise((resolve) => setTimeout(resolve))

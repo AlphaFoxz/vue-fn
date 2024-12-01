@@ -43,7 +43,7 @@ it('event + agg 触发事件', async () => {
       states: {
         version,
       },
-      actions: {
+      commands: {
         setName(n: string) {
           name.value = n
           saveEvent.publishRequest({ name: name.value })
@@ -61,7 +61,7 @@ it('event + agg 触发事件', async () => {
     expect(data.name).toBe('bob')
     reply()
   })
-  agg.api.actions.setName('bob')
+  agg.api.commands.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(saved.value).toBe(true)
   expect(agg.api.states.version.value).toBe(1)
@@ -71,7 +71,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
   const agg = createMultiInstanceAgg(1, () => {
     return {
       states: {},
-      actions: {},
+      commands: {},
       events: {},
     }
   })
@@ -99,7 +99,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
       states: {
         watchName,
       },
-      actions: {
+      commands: {
         load(n: string) {
           name.value = n
           loadedEvent.publish({ name: name.value, age })
@@ -110,12 +110,12 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
       },
     }
   })
-  agg.api.actions.load('bob')
+  agg.api.commands.load('bob')
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(agg.api.states.watchName.value).toBe('bob')
   agg.api.destroy()
   await new Promise((resolve) => setTimeout(resolve, 0))
-  agg.api.actions.load('wong')
+  agg.api.commands.load('wong')
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(agg.api.states.watchName.value).toBe('bob')
 })
@@ -133,7 +133,7 @@ it('event中的data应该脱离响应式', async () => {
         version,
         age,
       },
-      actions: {
+      commands: {
         setName(n: string) {
           name.value = n
           saveEvent.publishRequest({ name: name.value, age: age.value })
@@ -152,10 +152,10 @@ it('event中的data应该脱离响应式', async () => {
   agg.api.events.save.watchPublishRequest(({ data }) => {
     saved.value = true
     expect(data.name).toBe('bob')
-    agg.api.actions.setAge(18)
+    agg.api.commands.setAge(18)
     expect(data.age).toBe(0)
   })
-  agg.api.actions.setName('bob')
+  agg.api.commands.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(saved.value).toBe(true)
 })
@@ -182,7 +182,7 @@ it('聚合等待初始化', async () => {
       states: {
         user,
       },
-      actions: {
+      commands: {
         async init() {
           await untilReady()
         },
@@ -206,7 +206,7 @@ it('聚合等待初始化', async () => {
     listenCounter.value++
     reply({ name: 'eric', age: 18 })
   })
-  await agg.api.actions.init()
+  await agg.api.commands.init()
   expect(agg.api.states.user.value?.name).toEqual('eric')
   expect(agg.api.states.user.value?.age).toEqual(18)
   expect(listenCounter.value).toBe(1)
@@ -225,7 +225,7 @@ it('聚合onCreated创建', async () => {
       events: {
         startInit: startInitEvent,
       },
-      actions: {
+      commands: {
         untilInitialized: async () => {
           await context.untilInitialized
         },
@@ -241,7 +241,7 @@ it('聚合onCreated创建', async () => {
     })
   )
 
-  await agg.api.actions.untilInitialized()
+  await agg.api.commands.untilInitialized()
   expect(agg.api.states.initialized.value).toBe(true)
 })
 
@@ -256,7 +256,7 @@ it('注册单例插件-setupPlugin', async () => {
   singletonExample.PluginHelper.registerPlugin(PLUGIN)
   const agg = singletonExample.useSingletonAgg()
   expect(agg.states.initialized.value).toBe(false)
-  await agg.actions.untilInitialized()
+  await agg.commands.untilInitialized()
   expect(agg.states.initialized.value).toBe(true)
   expect(agg.states.loadData.value).toEqual('Hello')
 })
@@ -272,7 +272,7 @@ it('注册多实例插件-setupPlugin', async () => {
   multiInstanceExample.PluginHelper.registerPlugin(PLUGIN)
   const agg = multiInstanceExample.useMultiInstaceAgg('1')
   expect(agg.states.initialized.value).toBe(false)
-  await agg.actions.untilInitialized()
+  await agg.commands.untilInitialized()
   expect(agg.states.initialized.value).toBe(true)
   expect(agg.states.loadData.value).toEqual('Hello')
 })
@@ -288,11 +288,11 @@ it('注册单例插件-hotSwapPlugin', async () => {
           oldVal = data.old
           newVal = data.new
         })
-        api.actions.setStatus('1')
+        api.commands.setStatus('1')
       },
       unmount({ api }) {
         handler?.()
-        api.actions.setStatus('0')
+        api.commands.setStatus('0')
       },
     }
   })
@@ -318,11 +318,11 @@ it('注册多实例插件-hotSwapPlugin', async () => {
           oldVal = data.old
           newVal = data.new
         })
-        api.actions.setStatus('1')
+        api.commands.setStatus('1')
       },
       unmount({ api }) {
         handler?.()
-        api.actions.setStatus('0')
+        api.commands.setStatus('0')
       },
     }
   })
