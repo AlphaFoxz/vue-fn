@@ -31,7 +31,7 @@ function createAgg(id: string) {
         loadData,
         initialized: context.isInitialized,
       },
-      actions: {
+      commands: {
         untilInitialized: async () => context.untilInitialized,
         setStatus(s: string) {
           onStatusChanged.publish({ old: status.value, new: s })

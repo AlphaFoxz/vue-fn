@@ -37,7 +37,7 @@ type InferDomainEvent<EVENT extends DomainEvent<any, any>> = EVENT extends Domai
 type InferDomainEventApi<EVENT extends DomainEvent<any, any>> = InferDomainEvent<EVENT>['api']
 
 type CustomerStateRecords<T> = keyof T extends never ? {} : Record<string, object>
-type CustomerActionRecords<T> = keyof T extends never ? {} : Record<string, Function>
+type CustomerCommandRecords<T> = keyof T extends never ? {} : Record<string, Function>
 type CustomerEventRecords<T> = keyof T extends never
   ? {}
   : { [K in keyof T]: T[K] extends DomainRequestEvent<any, any> | DomainBroadcastEvent<any> ? T[K] : never }
@@ -47,8 +47,8 @@ export type DomainStatesApi<STATES extends CustomerStateRecords<any>> = Readonly
   [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
 }>
 
-export type DomainActionsApi<ACTIONS extends CustomerActionRecords<any>> = Readonly<{
-  [K in keyof ACTIONS]: ACTIONS[K] extends Function ? ACTIONS[K] : never
+export type DomainCommandsApi<COMMANDS extends CustomerCommandRecords<any>> = Readonly<{
+  [K in keyof COMMANDS]: COMMANDS[K] extends Function ? COMMANDS[K] : never
 }>
 
 export type DomainEventsApi<EVENTS extends CustomerEventRecords<any>> = EVENTS extends Record<
@@ -73,68 +73,68 @@ export type DomainMultiInstanceEventsApi<EVENTS extends CustomerEventRecords<EVE
 
 export type DomainMultiInstanceAggApi<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = Readonly<{
   states: DomainStatesApi<STATES>
-  actions: DomainActionsApi<ACTIONS>
+  commands: DomainCommandsApi<COMMANDS>
   events: DomainMultiInstanceEventsApi<EVENTS>
   destroy: DomainDestroyFunction
 }>
 
 export type DomainSingletonAggApi<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = Readonly<{
   states: DomainStatesApi<STATES>
-  actions: DomainActionsApi<ACTIONS>
+  commands: DomainCommandsApi<COMMANDS>
   events: DomainEventsApi<EVENTS>
 }>
 
 export function createMultiInstanceAggApi<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(option: {
   states: STATES
-  actions: ACTIONS
+  commands: COMMANDS
   events: EVENTS
   destroy: DomainDestroyFunction
-}): DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS> {
-  return createAggApiContent(option) as unknown as DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS>
+}): DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS> {
+  return createAggApiContent(option) as unknown as DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS>
 }
 
 export function createAggApi<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(option: {
   states: STATES
-  actions: ACTIONS
+  commands: COMMANDS
   events: EVENTS
   destroy: DomainDestroyFunction
-}): DomainSingletonAggApi<STATES, ACTIONS, EVENTS> {
+}): DomainSingletonAggApi<STATES, COMMANDS, EVENTS> {
   const apiContent = createAggApiContent(option)
   return shallowReadonly({
     states: apiContent.states,
-    actions: apiContent.actions,
+    commands: apiContent.commands,
     events: apiContent.events,
   })
 }
 
 function createAggApiContent<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(option: {
   states: STATES
-  actions: ACTIONS
+  commands: COMMANDS
   events: EVENTS
   destroy: DomainDestroyFunction
 }): {
   states: DomainStatesApi<STATES>
-  actions: DomainActionsApi<ACTIONS>
+  commands: DomainCommandsApi<COMMANDS>
   events: DomainEventsApi<EVENTS>
   destroy: DomainDestroyFunction
 } {
@@ -143,7 +143,7 @@ function createAggApiContent<
     optionStates[k] = readonly(optionStates[k])
   }
   const states = shallowReadonly(option.states) as DomainStatesApi<STATES>
-  const actions = readonly(option.actions) as DomainActionsApi<ACTIONS>
+  const commands = readonly(option.commands) as DomainCommandsApi<COMMANDS>
   const events = {} as DomainEventsApi<EVENTS>
   const optionEvents = option.events as { [k: string]: DomainRequestEvent<any, any> | DomainBroadcastEvent<any> }
   for (const k in option.events) {
@@ -151,7 +151,7 @@ function createAggApiContent<
   }
   return shallowReadonly({
     states,
-    actions,
+    commands,
     events: shallowReadonly(events) as DomainEventsApi<EVENTS>,
     destroy: option.destroy,
   })
@@ -160,25 +160,25 @@ function createAggApiContent<
 export type DomainMultiInstanceAgg<
   ID,
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
   readonly _hash: string
   readonly type: 'MultiInstance'
   readonly id: ID
-  readonly api: DomainMultiInstanceAggApi<STATES, ACTIONS, EVENTS>
+  readonly api: DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS>
   readonly isInitialized: ComputedRef<boolean>
   readonly untilInitialized: () => Promise<void>
 }
 
 export type DomainSingletonAgg<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
   readonly _hash: string
   readonly type: 'Singleton'
-  readonly api: DomainSingletonAggApi<STATES, ACTIONS, EVENTS>
+  readonly api: DomainSingletonAggApi<STATES, COMMANDS, EVENTS>
   readonly isInitialized: ComputedRef<boolean>
   readonly untilInitialized: () => Promise<void>
 }
@@ -186,7 +186,7 @@ export type DomainSingletonAgg<
 export function createMultiInstanceAgg<
   ID,
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(
   id: ID,
@@ -199,11 +199,11 @@ export function createMultiInstanceAgg<
     untilInitialized: Promise<void>
   }) => {
     states?: STATES
-    actions?: ACTIONS
+    commands?: COMMANDS
     events?: EVENTS
     destroy?: DomainDestroyFunction
   }
-): DomainMultiInstanceAgg<ID, STATES, ACTIONS, EVENTS> {
+): DomainMultiInstanceAgg<ID, STATES, COMMANDS, EVENTS> {
   // 声明 生命周期 - init
   const {
     callback: initialize,
@@ -244,7 +244,7 @@ export function createMultiInstanceAgg<
   )!
 
   const states = (result.states || {}) as STATES
-  const actions = (result.actions || {}) as ACTIONS
+  const commands = (result.commands || {}) as COMMANDS
   const eventsExt = (result.events || {}) as AddDestroyedEvent<EVENTS>
   let destroyedEvent: DomainBroadcastEvent<{}> | undefined
   if (!eventsExt.destroyed) {
@@ -273,7 +273,7 @@ export function createMultiInstanceAgg<
     id,
     api: createMultiInstanceAggApi({
       states,
-      actions,
+      commands,
       events: eventsExt as unknown as EVENTS,
       destroy,
     }),
@@ -288,7 +288,7 @@ export function createMultiInstanceAgg<
 
 export function createSingletonAgg<
   STATES extends CustomerStateRecords<STATES>,
-  ACTIONS extends CustomerActionRecords<ACTIONS>,
+  COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 >(
   init: (context: {
@@ -298,10 +298,10 @@ export function createSingletonAgg<
     untilInitialized: Promise<void>
   }) => {
     states?: STATES
-    actions?: ACTIONS
+    commands?: COMMANDS
     events?: EVENTS
   }
-): DomainSingletonAgg<STATES, ACTIONS, EVENTS> {
+): DomainSingletonAgg<STATES, COMMANDS, EVENTS> {
   const {
     callback: initialize,
     onError: onInitializeError,
@@ -335,14 +335,14 @@ export function createSingletonAgg<
   )
 
   const states = (result.states || {}) as STATES
-  const actions = (result.actions || {}) as ACTIONS
+  const commands = (result.commands || {}) as COMMANDS
   const events = (result.events || {}) as EVENTS
   return {
     _hash: genUuidv4(),
     type: 'Singleton',
     api: createAggApi({
       states,
-      actions,
+      commands,
       events,
       destroy: () => {},
     }),

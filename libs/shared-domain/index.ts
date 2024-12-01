@@ -81,21 +81,21 @@ export function createSharedFactory(channel: BroadcastChannel) {
 
 export function createSharedSingletonAgg<
   STATES extends Record<string, Ref<any>>,
-  ACTIONS extends Record<string, Function>
+  COMMANDS extends Record<string, Function>
 >(
   channelName: string,
   init: (context: { sharedRefs: ReturnType<typeof createSharedFactory>['sharedRefs'] }) => {
     states: STATES
-    actions: ACTIONS
+    commands: COMMANDS
   }
-): { api: { states: STATES; actions: ACTIONS } } {
+): { api: { states: STATES; commands: COMMANDS } } {
   const channel = new BroadcastChannel(channelName)
   const sharedFactory = createSharedFactory(channel)
   const result = init({ sharedRefs: sharedFactory.sharedRefs })
 
   const states = (result.states || {}) as STATES
-  const actions = (result.actions || {}) as ACTIONS
+  const commands = (result.commands || {}) as COMMANDS
   return {
-    api: { states, actions },
+    api: { states, commands },
   }
 }

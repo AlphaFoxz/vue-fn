@@ -6,7 +6,7 @@ it('', async () => {
     const sharedRefs = context.sharedRefs({ name: 'Init' })
     return {
       states: { name: sharedRefs.name },
-      actions: {
+      commands: {
         setName(n: string) {
           sharedRefs.name.value = n
         },
@@ -19,7 +19,7 @@ it('', async () => {
     const sharedRefs = context.sharedRefs({ name: '' })
     return {
       states: { name: sharedRefs.name },
-      actions: {
+      commands: {
         setName(n: string) {
           sharedRefs.name.value = n
         },
@@ -28,10 +28,10 @@ it('', async () => {
   })
   await new Promise((resolve) => setTimeout(resolve, 50))
   expect(agg2.api.states.name.value).toBe('Init')
-  agg1.api.actions.setName('Andy')
+  agg1.api.commands.setName('Andy')
   await new Promise((resolve) => setTimeout(resolve, 10))
   expect((agg2.api.states.name as any).value).toBe('Andy')
-  agg1.api.actions.setName('Bob')
+  agg1.api.commands.setName('Bob')
   await new Promise((resolve) => setTimeout(resolve, 10))
   expect((agg2.api.states.name as any).value).toBe('Bob')
 })
