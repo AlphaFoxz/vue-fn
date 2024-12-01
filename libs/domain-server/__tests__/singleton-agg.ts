@@ -1,6 +1,6 @@
 import { ref } from '@vue/reactivity'
 import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg, createBroadcastEvent } from '..'
-import { it } from '@jest/globals'
+import { it } from 'vitest'
 
 const agg = createSingletonAgg((context) => {
   const name = ref('')

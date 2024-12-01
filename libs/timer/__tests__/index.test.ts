@@ -1,4 +1,4 @@
-import { expect, it } from '@jest/globals'
+import { expect, it } from 'vitest'
 import { createTimeout } from '..'
 
 it('createTimeout 超时抛出错误', async () => {

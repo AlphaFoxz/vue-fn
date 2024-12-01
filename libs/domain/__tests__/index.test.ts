@@ -1,4 +1,4 @@
-import { expect, it } from '@jest/globals'
+import { expect, it } from 'vitest'
 import { createSingletonAgg, createBroadcastEvent, createRequestEvent, createMultiInstanceAgg } from '..'
 import { ref } from 'vue'
 import * as singletonExample from './singleton-agg'

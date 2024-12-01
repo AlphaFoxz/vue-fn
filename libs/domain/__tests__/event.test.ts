@@ -1,4 +1,4 @@
-import { it, expect } from '@jest/globals'
+import { it, expect } from 'vitest'
 import { createBroadcastEvent, createRequestEvent } from '../event'
 import { ref } from 'vue'
 

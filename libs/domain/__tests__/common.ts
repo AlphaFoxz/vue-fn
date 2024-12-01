@@ -1,4 +1,4 @@
-import { expect, it } from '@jest/globals'
+import { expect, it } from 'vitest'
 import { Utils } from '..'
 
 it('createPromiseCallback 成功', async () => {

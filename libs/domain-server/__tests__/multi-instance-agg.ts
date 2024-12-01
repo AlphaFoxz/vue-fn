@@ -1,6 +1,6 @@
 import { ref } from '@vue/reactivity'
 import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator, createBroadcastEvent } from '..'
-import { it } from '@jest/globals'
+import { it } from 'vitest'
 
 const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it } from 'vitest'
 import { createSingletonAgg, createAggApi, createMultiInstanceAgg, createMultiInstanceAggApi } from '../agg'
 import { computed, isReadonly, onWatcherCleanup, reactive, ref, shallowReactive, watch } from 'vue'
 
