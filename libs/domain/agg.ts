@@ -16,7 +16,7 @@ import {
   DomainEvent,
   DomainRequestEvent,
 } from './event'
-import { createPromiseCallback, genUuidv4 } from './common'
+import { createPromiseCallback, genId } from './common'
 
 type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
@@ -163,7 +163,7 @@ export type DomainMultiInstanceAgg<
   COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
-  readonly _hash: string
+  readonly _code: string
   readonly type: 'MultiInstance'
   readonly id: ID
   readonly api: DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS>
@@ -176,7 +176,7 @@ export type DomainSingletonAgg<
   COMMANDS extends CustomerCommandRecords<COMMANDS>,
   EVENTS extends CustomerEventRecords<EVENTS>
 > = {
-  readonly _hash: string
+  readonly _code: string
   readonly type: 'Singleton'
   readonly api: DomainSingletonAggApi<STATES, COMMANDS, EVENTS>
   readonly isInitialized: ComputedRef<boolean>
@@ -268,7 +268,7 @@ export function createMultiInstanceAgg<
     }) as DomainDestroyFunction
   }
   return shallowReadonly({
-    _hash: genUuidv4(),
+    _code: genId(),
     type: 'MultiInstance',
     id,
     api: createMultiInstanceAggApi({
@@ -338,7 +338,7 @@ export function createSingletonAgg<
   const commands = (result.commands || {}) as COMMANDS
   const events = (result.events || {}) as EVENTS
   return {
-    _hash: genUuidv4(),
+    _code: genId(),
     type: 'Singleton',
     api: createAggApi({
       states,

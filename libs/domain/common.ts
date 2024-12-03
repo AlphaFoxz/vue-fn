@@ -1,5 +1,5 @@
 import { ComputedRef, ref, computed } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
+import { nanoid } from 'nanoid'
 
 export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error | void>(
   callback: CALLBACK,
@@ -81,6 +81,6 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
   }
 }
 
-export function genUuidv4(): string {
-  return uuidv4()
+export function genId(): string {
+  return nanoid()
 }
