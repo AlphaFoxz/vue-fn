@@ -1,17 +1,53 @@
 import { readonly } from 'vue'
-import { DomainDesignDesc, DomainDesignDescValue } from './define'
+import { DomainDesignDesc, DomainDesignDescFn, DomainDesignDescValue } from './define'
 
-export function desc(temp: undefined): undefined
-export function desc(temp: string): DomainDesignDesc
-export function desc(temp: TemplateStringsArray, ...values: DomainDesignDescValue[]): DomainDesignDesc
-export function desc(
-  temp: string | TemplateStringsArray | undefined,
-  ...values: DomainDesignDescValue[]
-): DomainDesignDesc | undefined {
+export function descFn(_designCode: string): DomainDesignDescFn {
+  function descFn(temp: undefined): undefined
+  function descFn(temp: string): DomainDesignDesc
+  function descFn(temp: DomainDesignDesc): DomainDesignDesc
+  function descFn(temp: TemplateStringsArray, ...values: DomainDesignDescValue[]): DomainDesignDesc
+  function descFn(
+    temp: string | TemplateStringsArray | undefined | DomainDesignDesc,
+    ...values: DomainDesignDescValue[]
+  ): DomainDesignDesc | undefined {
+    if (temp === undefined) {
+      return undefined
+    } else if (isDomainDesignDesc(temp)) {
+      return temp as DomainDesignDesc
+    }
+    let template: Readonly<TemplateStringsArray>
+    if (typeof temp === 'string') {
+      const arr = new Array<string>()
+      arr.push(temp)
+      template = readonly({
+        raw: readonly([temp]),
+        ...arr,
+      })
+    } else {
+      template = temp
+    }
+    return {
+      _attributes: {
+        rule: 'Desc',
+        template: template,
+        values: values,
+      },
+    }
+  }
+  return descFn
+}
+
+function isDomainDesignDesc(param: any): param is DomainDesignDesc {
+  return param._attributes && param._attributes.rule === 'Desc'
+}
+
+export function _optionalDesc(temp?: string | DomainDesignDesc): DomainDesignDesc | undefined {
   if (temp === undefined) {
     return undefined
+  } else if (isDomainDesignDesc(temp)) {
+    return temp as DomainDesignDesc
   }
-  let template: TemplateStringsArray
+  let template: Readonly<TemplateStringsArray>
   if (typeof temp === 'string') {
     const arr = new Array<string>()
     arr.push(temp)
@@ -23,21 +59,10 @@ export function desc(
     template = temp
   }
   return {
-    rule: 'Desc',
-    template,
-    values,
+    _attributes: {
+      rule: 'Desc',
+      template: template,
+      values: [],
+    },
   }
-}
-
-export function _optionalDesc(param: string | DomainDesignDesc | undefined): DomainDesignDesc | undefined {
-  let description: DomainDesignDesc | undefined = undefined
-  if (typeof param === 'string') {
-    description = desc(param)
-  } else if (typeof param === 'object') {
-    description = param
-  } else if (param === undefined) {
-  } else {
-    isNever(param)
-  }
-  return description
 }
