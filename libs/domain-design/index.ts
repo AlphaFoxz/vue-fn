@@ -49,6 +49,8 @@ export function createDomainDesigner() {
   }
 }
 
+export type DomainDesigner = ReturnType<typeof createDomainDesigner>
+
 export type {
   DomainDesignAgg,
   DomainDesignCommand,
