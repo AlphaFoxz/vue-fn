@@ -5,9 +5,10 @@ import {
   DomainDesignDesc,
   DomainDesignPolicy,
   DomainDesignSystem,
+  DomainDesignEventProvider,
 } from './define'
 
-export function eventFn(designCode: string) {
+export function eventProvider(designCode: string): DomainDesignEventProvider<any> {
   return <FIELDS extends DomainDesignFields>(
     name: string,
     fields: FIELDS,

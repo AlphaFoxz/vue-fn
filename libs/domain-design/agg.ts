@@ -1,7 +1,7 @@
 import { genId, useInternalContext } from './common'
 import { DomainDesignAgg, DomainDesignDesc, DomainDesignEvent, DomainDesignFields } from './define'
 
-export function aggFn(designCode: string) {
+export function aggProvider(designCode: string) {
   return <T extends DomainDesignFields>(
     name: string,
     fields: T,

@@ -5,11 +5,11 @@ import {
   DomainDesignDesc,
   DomainDesignFields,
   DomainDesignService,
-  DomainDesignServiceFn,
+  DomainDesignServiceProvider,
 } from './define'
 import { _optionalDesc } from './desc'
 
-export function serviceFn(designCode: string): DomainDesignServiceFn {
+export function serviceProvider(designCode: string): DomainDesignServiceProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
     const context = useInternalContext(designCode)
     const _code = genId()
@@ -34,13 +34,17 @@ export function serviceFn(designCode: string): DomainDesignServiceFn {
       return a
     }
 
-    function command(param: DomainDesignCommand): DomainDesignCommand
-    function command(name: string, fields: DomainDesignFields, desc?: string | DomainDesignDesc): DomainDesignCommand
-    function command(
-      param1: DomainDesignCommand | string,
+    function command<COMMAND extends DomainDesignCommand<any>>(param: COMMAND): COMMAND
+    function command<FIELDS extends DomainDesignFields>(
+      name: string,
+      fields: FIELDS,
+      desc?: string | DomainDesignDesc
+    ): FIELDS
+    function command<COMMAND extends DomainDesignCommand<any>, FIELDS extends DomainDesignFields>(
+      param1: COMMAND | string,
       fields?: DomainDesignFields,
       desc?: string | DomainDesignDesc
-    ): DomainDesignCommand {
+    ): COMMAND | DomainDesignCommand<FIELDS> {
       if (typeof param1 === 'object') {
         context.link(_code, param1._attributes._code)
         return param1

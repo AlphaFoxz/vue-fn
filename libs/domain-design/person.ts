@@ -5,21 +5,25 @@ import {
   DomainDesignFacadeCommand,
   DomainDesignFields,
   DomainDesignPerson,
-  DomainDesignPersonFn,
+  DomainDesignPersonProvider,
 } from './define'
 import { _optionalDesc } from './desc'
 
-export function personFn(designCode: string): DomainDesignPersonFn {
+export function personProvider(designCode: string): DomainDesignPersonProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
     const context = useInternalContext(designCode)
     const _code = genId()
-    function command(c: DomainDesignCommand): DomainDesignCommand
-    function command(name: string, fields: DomainDesignFields, desc?: string | DomainDesignDesc): DomainDesignCommand
-    function command(
-      param1: DomainDesignCommand | string,
-      fields?: DomainDesignFields,
+    function command<COMMAND extends DomainDesignCommand<any>>(c: COMMAND): COMMAND
+    function command<FIELDS extends DomainDesignFields>(
+      name: string,
+      fields: FIELDS,
       desc?: string | DomainDesignDesc
-    ): DomainDesignCommand {
+    ): DomainDesignCommand<FIELDS>
+    function command<COMMAND extends DomainDesignCommand<any>, FIELDS extends DomainDesignFields>(
+      param1: COMMAND | string,
+      fields?: FIELDS,
+      desc?: string | DomainDesignDesc
+    ): COMMAND | DomainDesignCommand<FIELDS> {
       if (typeof param1 !== 'string') {
         context.link(_code, param1._attributes._code)
         return param1
@@ -29,17 +33,17 @@ export function personFn(designCode: string): DomainDesignPersonFn {
       return c
     }
 
-    function facadeCmd(param: DomainDesignFacadeCommand): DomainDesignFacadeCommand
-    function facadeCmd(
+    function facadeCmd<FACADECMD extends DomainDesignFacadeCommand<any>>(param: FACADECMD): FACADECMD
+    function facadeCmd<FIELDS extends DomainDesignFields>(
       name: string,
-      fields: DomainDesignFields,
+      fields: FIELDS,
       desc?: string | DomainDesignDesc
-    ): DomainDesignFacadeCommand
-    function facadeCmd(
-      param1: DomainDesignFacadeCommand | string,
-      fields?: DomainDesignFields,
+    ): FIELDS
+    function facadeCmd<FACADECMD extends DomainDesignFacadeCommand<any>, FIELDS extends DomainDesignFields>(
+      param1: FACADECMD | string,
+      fields?: FIELDS,
       desc?: string | DomainDesignDesc
-    ): DomainDesignFacadeCommand {
+    ): FACADECMD | DomainDesignFacadeCommand<FIELDS> {
       if (typeof param1 !== 'string') {
         context.link(_code, param1._attributes._code)
         return param1

@@ -1,5 +1,5 @@
 // ========================== 描述 ==========================
-export interface DomainDesignDescFn {
+export interface DomainDesignDescProvider {
   (temp: undefined): undefined
   (temp: string): DomainDesignDesc
   (temp: DomainDesignDesc): DomainDesignDesc
@@ -12,10 +12,10 @@ export type DomainDesignDesc = Readonly<{
     readonly values: DomainDesignDescValue[]
   }
 }>
-export type DomainDesignDescValue = DomainDesignField<any> | DomainDesignCommand | DomainDesignEvent<any>
+export type DomainDesignDescValue = DomainDesignField<any> | DomainDesignCommand<any> | DomainDesignEvent<any>
 
 // ========================== 字段 ==========================
-export type DomainDesignFieldFn<T extends DomainDesignFieldType> = (
+export type DomainDesignFieldProvider<T extends DomainDesignFieldType> = (
   name: string,
   desc?: string | DomainDesignDesc
 ) => DomainDesignField<T>
@@ -32,7 +32,7 @@ export type DomainDesignField<T extends DomainDesignFieldType> = Readonly<{
 export type DomainDesignFields = Record<string, DomainDesignField<any>>
 
 // ========================== 用户 ==========================
-export type DomainDesignPersonFn = (name: string, desc?: string | DomainDesignDesc) => DomainDesignPerson
+export type DomainDesignPersonProvider = (name: string, desc?: string | DomainDesignDesc) => DomainDesignPerson
 export type DomainDesignPerson = Readonly<{
   readonly _attributes: {
     _code: string
@@ -40,24 +40,32 @@ export type DomainDesignPerson = Readonly<{
     name: string
     description?: DomainDesignDesc
   }
-  command(command: DomainDesignCommand): DomainDesignCommand
-  command(name: string, fields: DomainDesignFields, desc?: string | DomainDesignDesc): DomainDesignCommand
-  facadeCmd(command: DomainDesignFacadeCommand): DomainDesignFacadeCommand
-  facadeCmd(name: string, fields: DomainDesignFields, desc?: string | DomainDesignDesc): DomainDesignFacadeCommand
+  command<COMMAND extends DomainDesignCommand<any>>(command: COMMAND): COMMAND
+  command<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignCommand<FIELDS>
+  facadeCmd<FACADECMD extends DomainDesignFacadeCommand<any>>(command: FACADECMD): FACADECMD
+  facadeCmd<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignFacadeCommand<FIELDS>
 }>
 
 // ========================== 指令 ==========================
-export type DomainDesignCommandFn = (
+export type DomainDesignCommandProvider<FIELDS extends DomainDesignFields> = (
   name: string,
   fields: DomainDesignFields,
   desc?: string | DomainDesignDesc
-) => DomainDesignCommand
-export type DomainDesignCommand = Readonly<{
+) => DomainDesignCommand<FIELDS>
+export type DomainDesignCommand<FIELDS extends DomainDesignFields> = Readonly<{
   readonly _attributes: {
     _code: string
     rule: 'Command'
     name: string
-    fields: DomainDesignFields
+    fields: FIELDS
     description?: DomainDesignDesc
   }
   agg<AGG extends DomainDesignAgg<any>>(agg: AGG): AGG
@@ -68,17 +76,17 @@ export type DomainDesignCommand = Readonly<{
   ): DomainDesignAgg<FIELDS>
 }>
 
-export type DomainDesignFacadeCommandFn = (
+export type DomainDesignFacadeCommandProvider<FIELDS extends DomainDesignFields> = (
   name: string,
-  fields: DomainDesignFields,
+  fields: FIELDS,
   desc?: string | DomainDesignDesc
-) => DomainDesignFacadeCommand
-export type DomainDesignFacadeCommand = Readonly<{
+) => DomainDesignFacadeCommand<FIELDS>
+export type DomainDesignFacadeCommand<FIELDS extends DomainDesignFields> = Readonly<{
   readonly _attributes: {
     _code: string
     rule: 'FacadeCommand'
     name: string
-    fields: DomainDesignFields
+    fields: FIELDS
     description?: DomainDesignDesc
   }
   agg<AGG extends DomainDesignAgg<any>>(agg: AGG): AGG
@@ -92,7 +100,7 @@ export type DomainDesignFacadeCommand = Readonly<{
 }>
 
 // ========================== 事件 ==========================
-export type DomainDesignEventFn<FIELDS extends DomainDesignFields> = (
+export type DomainDesignEventProvider<FIELDS extends DomainDesignFields> = (
   name: string,
   fields: FIELDS,
   desc?: string | DomainDesignDesc
@@ -113,7 +121,7 @@ export type DomainDesignEvent<FIELDS extends DomainDesignFields> = Readonly<{
 }>
 
 // ========================== 聚合 ==========================
-export type DomainDesignAggFn<FIELDS extends DomainDesignFields> = (
+export type DomainDesignAggProvider<FIELDS extends DomainDesignFields> = (
   name: string,
   fields: FIELDS,
   desc?: string | DomainDesignDesc
@@ -128,11 +136,15 @@ export type DomainDesignAgg<FIELDS extends DomainDesignFields> = Readonly<{
   }
   inner: FIELDS
   event<EVENT extends DomainDesignEvent<any>>(event: EVENT): EVENT
-  event<FIELDS extends DomainDesignFields>(event: FIELDS): DomainDesignEvent<FIELDS>
+  event<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignEvent<FIELDS>
 }>
 
 // ========================== 规则 ==========================
-export type DomainDesignPolicyFn = (name: string, desc?: string | DomainDesignDesc) => DomainDesignPolicy
+export type DomainDesignPolicyProvider = (name: string, desc?: string | DomainDesignDesc) => DomainDesignPolicy
 export type DomainDesignPolicy = Readonly<{
   readonly _attributes: {
     _code: string
@@ -145,7 +157,7 @@ export type DomainDesignPolicy = Readonly<{
 }>
 
 // ========================== 外部系统 ==========================
-export type DomainDesignSystemFn = (name: string, desc?: string | DomainDesignDesc) => DomainDesignSystem
+export type DomainDesignSystemProvider = (name: string, desc?: string | DomainDesignDesc) => DomainDesignSystem
 export type DomainDesignSystem = Readonly<{
   readonly _attributes: {
     _code: string
@@ -153,10 +165,22 @@ export type DomainDesignSystem = Readonly<{
     name: string
     description?: DomainDesignDesc
   }
+  command<COMMAND extends DomainDesignCommand<any>>(command: COMMAND): COMMAND
+  command<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignCommand<FIELDS>
+  facadeCmd<FACADECMD extends DomainDesignFacadeCommand<any>>(facadeCmd: FACADECMD): FACADECMD
+  facadeCmd<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignFacadeCommand<FIELDS>
 }>
 
 // ========================== 服务 ==========================
-export type DomainDesignServiceFn = (name: string, desc?: string | DomainDesignDesc) => DomainDesignService
+export type DomainDesignServiceProvider = (name: string, desc?: string | DomainDesignDesc) => DomainDesignService
 export type DomainDesignService = Readonly<{
   readonly _attributes: {
     _code: string
@@ -164,8 +188,12 @@ export type DomainDesignService = Readonly<{
     name: string
     description?: DomainDesignDesc
   }
-  command(command: DomainDesignCommand): DomainDesignCommand
-  command(name: string, fields: DomainDesignFields, desc?: string | DomainDesignDesc): DomainDesignCommand
+  command<COMMAND extends DomainDesignCommand<any>>(command: COMMAND): COMMAND
+  command<FIELDS extends DomainDesignFields>(
+    name: string,
+    fields: FIELDS,
+    desc?: string | DomainDesignDesc
+  ): DomainDesignCommand<FIELDS>
   agg<AGG extends DomainDesignAgg<any>>(agg: AGG): AGG
   agg<FIELDS extends DomainDesignFields>(
     name: string,

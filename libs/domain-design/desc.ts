@@ -1,7 +1,7 @@
 import { readonly } from 'vue'
-import { DomainDesignDesc, DomainDesignDescFn, DomainDesignDescValue } from './define'
+import { DomainDesignDesc, DomainDesignDescProvider, DomainDesignDescValue } from './define'
 
-export function descFn(_designCode: string): DomainDesignDescFn {
+export function descProvider(_designCode: string): DomainDesignDescProvider {
   function descFn(temp: undefined): undefined
   function descFn(temp: string): DomainDesignDesc
   function descFn(temp: DomainDesignDesc): DomainDesignDesc
@@ -19,10 +19,8 @@ export function descFn(_designCode: string): DomainDesignDescFn {
     if (typeof temp === 'string') {
       const arr = new Array<string>()
       arr.push(temp)
-      template = readonly({
-        raw: readonly([temp]),
-        ...arr,
-      })
+      ;(arr as any).raw = readonly([temp])
+      template = readonly(arr as unknown as TemplateStringsArray)
     } else {
       template = temp
     }

@@ -1,14 +1,14 @@
 import { genId } from './common'
-import { DomainDesignDesc, DomainDesignField, DomainDesignFieldFn } from './define'
+import { DomainDesignDesc, DomainDesignField, DomainDesignFieldProvider } from './define'
 import { _optionalDesc } from './desc'
 
 export interface DomainDesignFieldUtil {
   (name: string, desc?: string | DomainDesignDesc): DomainDesignField<'Unknown'>
-  id: DomainDesignFieldFn<'ID'>
-  str: DomainDesignFieldFn<'String'>
-  num: DomainDesignFieldFn<'Number'>
-  time: DomainDesignFieldFn<'Time'>
-  enumeration: DomainDesignFieldFn<'Enumeration'>
+  id: DomainDesignFieldProvider<'ID'>
+  str: DomainDesignFieldProvider<'String'>
+  num: DomainDesignFieldProvider<'Number'>
+  time: DomainDesignFieldProvider<'Time'>
+  enumeration: DomainDesignFieldProvider<'Enumeration'>
 }
 
 export const field: DomainDesignFieldUtil = (name: string, desc?: string | DomainDesignDesc) => {

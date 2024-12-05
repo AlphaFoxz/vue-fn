@@ -2,22 +2,22 @@ import { nanoid } from 'nanoid'
 import {
   ArrowType,
   DomainDesignAgg,
-  DomainDesignAggFn,
+  DomainDesignAggProvider,
   DomainDesignCommand,
-  DomainDesignCommandFn,
-  DomainDesignDescFn,
+  DomainDesignCommandProvider,
+  DomainDesignDescProvider,
   DomainDesignEvent,
-  DomainDesignEventFn,
+  DomainDesignEventProvider,
   DomainDesignFacadeCommand,
-  DomainDesignFacadeCommandFn,
+  DomainDesignFacadeCommandProvider,
   DomainDesignPerson,
-  DomainDesignPersonFn,
+  DomainDesignPersonProvider,
   DomainDesignPolicy,
-  DomainDesignPolicyFn,
+  DomainDesignPolicyProvider,
   DomainDesignService,
-  DomainDesignServiceFn,
+  DomainDesignServiceProvider,
   DomainDesignSystem,
-  DomainDesignSystemFn,
+  DomainDesignSystemProvider,
 } from './define'
 
 export function genId(): string {
@@ -25,15 +25,15 @@ export function genId(): string {
 }
 
 type ContextInitializer = () => {
-  createDesc: DomainDesignDescFn
-  createPerson: DomainDesignPersonFn
-  createCommand: DomainDesignCommandFn
-  createFacadeCommand: DomainDesignFacadeCommandFn
-  createAgg: DomainDesignAggFn<any>
-  createEvent: DomainDesignEventFn<any>
-  createPolicy: DomainDesignPolicyFn
-  createService: DomainDesignServiceFn
-  createSystem: DomainDesignSystemFn
+  createDesc: DomainDesignDescProvider
+  createPerson: DomainDesignPersonProvider
+  createCommand: DomainDesignCommandProvider<any>
+  createFacadeCommand: DomainDesignFacadeCommandProvider<any>
+  createAgg: DomainDesignAggProvider<any>
+  createEvent: DomainDesignEventProvider<any>
+  createPolicy: DomainDesignPolicyProvider
+  createService: DomainDesignServiceProvider
+  createSystem: DomainDesignSystemProvider
 }
 
 export type DomainDesignInternalContext = ReturnType<typeof createInternalContext>
@@ -44,8 +44,8 @@ function createInternalContext(initFn: ContextInitializer) {
   //NOTE: arrows的键为"srcid,destid"
   const arrows: Record<string, ArrowType> = {}
   const idMap: Record<string, object> = {}
-  const commands: DomainDesignCommand[] = []
-  const facadeCommands: DomainDesignFacadeCommand[] = []
+  const commands: DomainDesignCommand<any>[] = []
+  const facadeCommands: DomainDesignFacadeCommand<any>[] = []
   const persons: DomainDesignPerson[] = []
   const events: DomainDesignEvent<any>[] = []
   const policies: DomainDesignPolicy[] = []
@@ -83,11 +83,11 @@ function createInternalContext(initFn: ContextInitializer) {
     getAggs() {
       return aggs
     },
-    registerCommand(command: DomainDesignCommand) {
+    registerCommand(command: DomainDesignCommand<any>) {
       idMap[command._attributes._code] = command
       commands.push(command)
     },
-    registerFacadeCommand(command: DomainDesignFacadeCommand) {
+    registerFacadeCommand(command: DomainDesignFacadeCommand<any>) {
       idMap[command._attributes._code] = command
       facadeCommands.push(command)
     },

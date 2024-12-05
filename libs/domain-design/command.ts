@@ -3,14 +3,14 @@ import {
   DomainDesignFields,
   DomainDesignCommand,
   DomainDesignDesc,
-  DomainDesignCommandFn,
+  DomainDesignCommandProvider,
   DomainDesignAgg,
-  DomainDesignFacadeCommandFn,
+  DomainDesignFacadeCommandProvider,
   DomainDesignFacadeCommand,
   DomainDesignService,
 } from './define'
 
-export function commandFn(designCode: string): DomainDesignCommandFn {
+export function commandProvider(designCode: string): DomainDesignCommandProvider<any> {
   return <FIELDS extends DomainDesignFields>(name: string, fields: FIELDS, desc?: string | DomainDesignDesc) => {
     const context = useInternalContext(designCode)
     const _code = genId()
@@ -33,7 +33,7 @@ export function commandFn(designCode: string): DomainDesignCommandFn {
       context.link(_code, a._attributes._code)
       return a
     }
-    const command: DomainDesignCommand = {
+    const command: DomainDesignCommand<FIELDS> = {
       _attributes: {
         _code,
         rule: 'Command',
@@ -48,7 +48,7 @@ export function commandFn(designCode: string): DomainDesignCommandFn {
   }
 }
 
-export function facadeCmdFn(designCode: string): DomainDesignFacadeCommandFn {
+export function facadeCmdProvider(designCode: string): DomainDesignFacadeCommandProvider<any> {
   return <FIELDS extends DomainDesignFields>(name: string, fields: FIELDS, desc?: string | DomainDesignDesc) => {
     const context = useInternalContext(designCode)
     const _code = genId()
@@ -83,7 +83,7 @@ export function facadeCmdFn(designCode: string): DomainDesignFacadeCommandFn {
       context.link(_code, s._attributes._code)
       return s
     }
-    const facadeCmd: DomainDesignFacadeCommand = {
+    const facadeCmd: DomainDesignFacadeCommand<FIELDS> = {
       _attributes: {
         _code,
         rule: 'FacadeCommand',

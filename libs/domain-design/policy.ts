@@ -1,8 +1,8 @@
 import { genId, useInternalContext } from './common'
-import { DomainDesignDesc, DomainDesignPolicy, DomainDesignPolicyFn, DomainDesignService } from './define'
+import { DomainDesignDesc, DomainDesignPolicy, DomainDesignPolicyProvider, DomainDesignService } from './define'
 import { _optionalDesc } from './desc'
 
-export function policyFn(designCode: string): DomainDesignPolicyFn {
+export function policyProvider(designCode: string): DomainDesignPolicyProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
     const context = useInternalContext(designCode)
     const _code = genId()

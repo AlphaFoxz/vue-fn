@@ -1,25 +1,25 @@
 import { field } from './field'
-import { commandFn, facadeCmdFn } from './command'
-import { eventFn } from './event'
-import { personFn } from './person'
-import { descFn } from './desc'
-import { aggFn } from './agg'
-import { systemFn } from './system'
-import { policyFn } from './policy'
-import { serviceFn } from './service'
+import { commandProvider, facadeCmdProvider } from './command'
+import { eventProvider } from './event'
+import { personProvider } from './person'
+import { descProvider } from './desc'
+import { aggProvider } from './agg'
+import { systemProvider } from './system'
+import { policyProvider } from './policy'
+import { serviceProvider } from './service'
 import { genId, useInternalContext } from './common'
 
 export function createDomainDesigner() {
   const designCode = genId()
-  const createDesc = descFn(designCode)
-  const createPerson = personFn(designCode)
-  const createCommand = commandFn(designCode)
-  const createFacadeCommand = facadeCmdFn(designCode)
-  const createAgg = aggFn(designCode)
-  const createEvent = eventFn(designCode)
-  const createSystem = systemFn(designCode)
-  const createPolicy = policyFn(designCode)
-  const createService = serviceFn(designCode)
+  const createDesc = descProvider(designCode)
+  const createPerson = personProvider(designCode)
+  const createCommand = commandProvider(designCode)
+  const createFacadeCommand = facadeCmdProvider(designCode)
+  const createAgg = aggProvider(designCode)
+  const createEvent = eventProvider(designCode)
+  const createSystem = systemProvider(designCode)
+  const createPolicy = policyProvider(designCode)
+  const createService = serviceProvider(designCode)
   useInternalContext(designCode, () => {
     return {
       createDesc,
