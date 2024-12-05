@@ -7,7 +7,6 @@ import {
   DomainDesignPerson,
   DomainDesignPersonProvider,
 } from './define'
-import { _optionalDesc } from './desc'
 
 export function personProvider(designCode: string): DomainDesignPersonProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
@@ -57,7 +56,7 @@ export function personProvider(designCode: string): DomainDesignPersonProvider {
         _code,
         rule: 'Person',
         name,
-        description: _optionalDesc(desc),
+        description: context.createDesc(desc as any),
       },
       command,
       facadeCmd,

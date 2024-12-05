@@ -49,10 +49,8 @@ export function _optionalDesc(temp?: string | DomainDesignDesc): DomainDesignDes
   if (typeof temp === 'string') {
     const arr = new Array<string>()
     arr.push(temp)
-    template = readonly({
-      raw: readonly([temp]),
-      ...arr,
-    })
+    ;(arr as any).raw = readonly([temp])
+    template = readonly(arr as unknown as TemplateStringsArray)
   } else {
     template = temp
   }

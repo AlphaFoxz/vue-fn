@@ -7,7 +7,6 @@ import {
   DomainDesignSystem,
   DomainDesignSystemProvider,
 } from './define'
-import { _optionalDesc } from './desc'
 
 export function systemProvider(designCode: string): DomainDesignSystemProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
@@ -59,7 +58,7 @@ export function systemProvider(designCode: string): DomainDesignSystemProvider {
         _code,
         rule: 'System',
         name,
-        description: _optionalDesc(desc),
+        description: context.createDesc(desc as any),
       },
       command,
       facadeCmd,

@@ -7,7 +7,6 @@ import {
   DomainDesignService,
   DomainDesignServiceProvider,
 } from './define'
-import { _optionalDesc } from './desc'
 
 export function serviceProvider(designCode: string): DomainDesignServiceProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
@@ -58,7 +57,7 @@ export function serviceProvider(designCode: string): DomainDesignServiceProvider
         _code,
         rule: 'Service',
         name,
-        description: _optionalDesc(desc)!,
+        description: context.createDesc(desc as any),
       },
       agg,
       command,

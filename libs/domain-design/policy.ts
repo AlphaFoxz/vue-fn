@@ -1,6 +1,5 @@
 import { genId, useInternalContext } from './common'
 import { DomainDesignDesc, DomainDesignPolicy, DomainDesignPolicyProvider, DomainDesignService } from './define'
-import { _optionalDesc } from './desc'
 
 export function policyProvider(designCode: string): DomainDesignPolicyProvider {
   return (name: string, desc?: string | DomainDesignDesc) => {
@@ -22,7 +21,7 @@ export function policyProvider(designCode: string): DomainDesignPolicyProvider {
         _code,
         rule: 'Policy',
         name,
-        description: _optionalDesc(desc),
+        description: context.createDesc(desc as any),
       },
       service,
     }
