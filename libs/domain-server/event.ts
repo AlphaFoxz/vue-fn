@@ -9,6 +9,7 @@ import {
   shallowReactive,
   triggerRef,
   ComputedRef,
+  ShallowRef,
 } from '@vue/reactivity'
 import { createPromiseCallback } from './common'
 
@@ -22,18 +23,32 @@ export type DomainEvent<DATA extends DomainEventData, REPLY extends DomainReques
 
 export type DomainDestroyedEventApi = ReturnType<typeof createBroadcastEvent<{}>>['api']
 
-export type DomainRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> = ReturnType<
-  typeof createRequestEvent<DATA, REPLY>
->
+export type DomainRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> = {
+  watchHandles: WatchHandle[]
+  publishRequest: (data: UnwrapNestedRefs<DATA>) => Promise<void>
+  api: {
+    latestVersion: ComputedRef<ShallowRef<string>>
+    watchPublishRequest: (
+      cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string; reply: REPLY }) => void
+    ) => WatchHandle
+  }
+}
 
-export type DomainBroadcastEvent<DATA extends DomainEventData> = ReturnType<typeof createBroadcastEvent<DATA>>
+export type DomainBroadcastEvent<DATA extends DomainEventData> = {
+  watchHandles: WatchHandle[]
+  publish: (data: UnwrapNestedRefs<DATA>) => void
+  api: {
+    latestVersion: ComputedRef<ShallowRef<string>>
+    watchPublish: (cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string }) => void) => WatchHandle
+  }
+}
 
 export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply>(
   _: DATA,
   reply: REPLY,
   stopOnError = false,
   timeoutMs: number | false = false
-) {
+): DomainRequestEvent<DATA, REPLY> {
   let version = shallowRef('0')
   const map: Record<
     string,
@@ -114,7 +129,9 @@ export function createRequestEvent<DATA extends DomainEventData, REPLY extends D
   }
 }
 
-export function createBroadcastEvent<DATA extends DomainEventData>(_: DATA) {
+export function createBroadcastEvent<DATA extends DomainEventData = never>(): DomainBroadcastEvent<DATA>
+export function createBroadcastEvent<DATA extends DomainEventData>(_: DATA): DomainBroadcastEvent<DATA>
+export function createBroadcastEvent<DATA extends DomainEventData>(_?: DATA): DomainBroadcastEvent<DATA> {
   const eventLifetime: number = 5
   let version = shallowRef('0')
   const map: Record<
