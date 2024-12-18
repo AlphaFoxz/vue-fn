@@ -134,7 +134,29 @@ it('createRequestEvent 超时', async () => {
   expect(replyed).toBe(true)
 })
 
-it('createBroadcastEvent 广播', async () => {
+it('createBroadcastEvent 广播1', async () => {
+  const listenCounter = ref(0)
+  const listenedName = ref('')
+  function createInitEvent() {
+    return createBroadcastEvent<{ name: string }>()
+  }
+  const initEvent = createInitEvent()
+  initEvent.api.watchPublish(({ data }) => {
+    ++listenCounter.value
+    listenedName.value = data.name
+  })
+  initEvent.api.watchPublish(({ data }) => {
+    ++listenCounter.value
+    listenedName.value = data.name
+  })
+
+  await initEvent.publish({ name: 'Andy' })
+  await initEvent.publish({ name: 'Bob' })
+  expect(listenCounter.value).toBe(4)
+  expect(listenedName.value).toEqual('Bob')
+})
+
+it('createBroadcastEvent 广播2', async () => {
   const listenCounter = ref(0)
   const listenedName = ref('')
   function createInitEvent() {
