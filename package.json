@@ -32,6 +32,14 @@
     "@vue/reactivity": ">=3.5.0",
     "vue": ">=3.5.0"
   },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    },
+    "@vue/reactivity": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.0",
     "@types/node": "^22.9.0",
