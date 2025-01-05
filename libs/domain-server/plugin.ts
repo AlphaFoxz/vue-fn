@@ -9,29 +9,29 @@ type DomainAgg = DomainSingletonAgg<any, any, any> | DomainMultiInstanceAgg<any,
 export type DomainPlugin<T extends DomainAgg> = DomainSetupPlugin<T> | DomainHotSwapPlugin<T>
 
 export type DomainSetupPlugin<AGG extends DomainAgg> = {
-  readonly _code: string
+  readonly __id: string
   readonly type: Extract<DomainPluginType, 'Setup'>
-  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string; isInitialized: ComputedRef<boolean> }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; __aggId: string; isInitialized: ComputedRef<boolean> }) => void
 }
 
 type DomainSetupPluginOptions<AGG extends DomainAgg> = ReturnType<DomainSetupPluginOptionsFn<AGG>>
 
 type DomainSetupPluginOptionsFn<AGG extends DomainAgg> = () => {
-  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
 }
 
 export type DomainHotSwapPlugin<AGG extends DomainAgg> = {
-  readonly _code: string
+  readonly __id: string
   readonly type: Extract<DomainPluginType, 'HotSwap'>
-  readonly mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
-  readonly unmount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
+  readonly mount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
+  readonly unmount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
 }
 
 export type DomainHotSwapPluginOptions<AGG extends DomainAgg> = ReturnType<DomainHotSwapPluginOptionsFn<AGG>>
 
 export type DomainHotSwapPluginOptionsFn<AGG extends DomainAgg> = () => {
-  mount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
-  unmount: (util: { api: NonNullable<AGG>['api']; aggHash: string }) => void
+  mount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
+  unmount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
 }
 
 function createPluginHelper<AGG extends DomainAgg>() {
@@ -44,21 +44,21 @@ function createPluginHelper<AGG extends DomainAgg>() {
     registerAgg(agg: AGG) {
       if (agg.isInitialized.value) {
         throw new Error('Agg must register before initialized')
-      } else if (aggRecords[agg._code]) {
+      } else if (aggRecords[agg.__id]) {
         throw new Error('Agg already registered')
       } else if (agg.type === 'MultiInstance') {
         agg.api.events.destroyed.watchPublish(() => {
-          delete aggRecords[agg._code]
+          delete aggRecords[agg.__id]
         })
       }
-      aggRecords[agg._code] = agg
+      aggRecords[agg.__id] = agg
       const applyedHotSwapPlugins: string[] = []
       for (const p of Object.values(setupPlugins)) {
-        p.mount({ api: agg.api, aggHash: agg._code, isInitialized: agg.isInitialized })
+        p.mount({ api: agg.api, __aggId: agg.__id, isInitialized: agg.isInitialized })
       }
       for (const p of Object.values(hotSwapPlugins)) {
-        p.mount({ api: agg.api, aggHash: agg._code })
-        applyedHotSwapPlugins.push(p._code)
+        p.mount({ api: agg.api, __aggId: agg.__id })
+        applyedHotSwapPlugins.push(p.__id)
       }
       hotSwapPluginsCheck.set(agg, applyedHotSwapPlugins)
     },
@@ -70,13 +70,13 @@ function createPluginHelper<AGG extends DomainAgg>() {
         opts = args
       }
       return Object.freeze({
-        _code: genId(),
+        __id: genId(),
         type: 'Setup',
-        mount(util: { api: NonNullable<AGG>['api']; aggHash: string; isInitialized: ComputedRef<boolean> }) {
+        mount(util: { api: NonNullable<AGG>['api']; __aggId: string; isInitialized: ComputedRef<boolean> }) {
           if (util.isInitialized.value) {
             throw new Error('Can not setup after initialized')
           }
-          opts!.mount({ api: util.api, aggHash: util.aggHash })
+          opts!.mount({ api: util.api, __aggId: util.__aggId })
         },
       })
     },
@@ -90,7 +90,7 @@ function createPluginHelper<AGG extends DomainAgg>() {
         opts = args
       }
       return Object.freeze({
-        _code: genId(),
+        __id: genId(),
         type: 'HotSwap',
         mount: opts!.mount,
         unmount: opts!.unmount,
@@ -98,26 +98,26 @@ function createPluginHelper<AGG extends DomainAgg>() {
     },
     registerPlugin(plugin: DomainPlugin<AGG>) {
       if (plugin.type === 'Setup') {
-        if (setupPlugins[plugin._code]) {
+        if (setupPlugins[plugin.__id]) {
           throw new Error('Plugin already registered')
         }
-        setupPlugins[plugin._code] = plugin
+        setupPlugins[plugin.__id] = plugin
         for (const k in aggRecords) {
           plugin.mount({
             api: aggRecords[k].api,
-            aggHash: aggRecords[k]._code,
+            __aggId: aggRecords[k].__id,
             isInitialized: aggRecords[k].isInitialized,
           })
         }
       } else if (plugin.type === 'HotSwap') {
-        hotSwapPlugins[plugin._code] = plugin
+        hotSwapPlugins[plugin.__id] = plugin
         for (const k in aggRecords) {
           if (
             hotSwapPluginsCheck.has(aggRecords[k]) &&
-            !hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin._code)
+            !hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin.__id)
           ) {
-            plugin.mount({ api: aggRecords[k].api, aggHash: aggRecords[k]._code })
-            hotSwapPluginsCheck.get(aggRecords[k])!.push(plugin._code)
+            plugin.mount({ api: aggRecords[k].api, __aggId: aggRecords[k].__id })
+            hotSwapPluginsCheck.get(aggRecords[k])!.push(plugin.__id)
           }
         }
       } else {
@@ -129,14 +129,11 @@ function createPluginHelper<AGG extends DomainAgg>() {
         throw new Error('Can not unregister setup plugin')
       } else if (plugin.type === 'HotSwap') {
         for (const k in aggRecords) {
-          if (
-            hotSwapPluginsCheck.has(aggRecords[k]) &&
-            hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin._code)
-          ) {
-            plugin.unmount({ api: aggRecords[k].api, aggHash: aggRecords[k]._code })
+          if (hotSwapPluginsCheck.has(aggRecords[k]) && hotSwapPluginsCheck.get(aggRecords[k])!.includes(plugin.__id)) {
+            plugin.unmount({ api: aggRecords[k].api, __aggId: aggRecords[k].__id })
           }
         }
-        delete hotSwapPlugins[plugin._code]
+        delete hotSwapPlugins[plugin.__id]
       } else {
         isNever(plugin)
       }
