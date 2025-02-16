@@ -1,6 +1,5 @@
 import { ref } from '@vue/reactivity'
 import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator, createBroadcastEvent } from '..'
-import { it } from 'vitest'
 
 const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
 
@@ -52,5 +51,3 @@ export function useMultiInstaceAgg(id: string) {
   }
   return aggMap[id].api
 }
-
-it('创建多实例', () => {})

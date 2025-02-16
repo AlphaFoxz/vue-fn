@@ -18,7 +18,12 @@ export function createPromiseCallback<CALLBACK extends (...args: any[]) => Error
   let resolveEffect: Function = () => {}
   const resolve = new Proxy(callback, {
     apply: function (target: CALLBACK, _thisArg: any, argumentsList: any[]) {
-      let r = target(...argumentsList)
+      let r: Error | void = undefined
+      try {
+        r = target(...argumentsList)
+      } catch (e: any) {
+        r = e
+      }
       if (r instanceof Error) {
         errorRef.value = r
         result = r

@@ -3,6 +3,7 @@
     "editor.indentSize": "tabSize",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
+    "editor.formatOnSaveMode": "file",
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.guides.bracketPairs": "active",
     "html.format.maxPreserveNewLines": 120,

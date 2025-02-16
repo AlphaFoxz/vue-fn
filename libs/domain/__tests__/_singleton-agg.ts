@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg, createBroadcastEvent } from '..'
-import { it } from 'vitest'
 
 const agg = createSingletonAgg((context) => {
   const name = ref('')
@@ -40,5 +39,3 @@ PluginHelper.registerAgg(agg)
 export function useSingletonAgg() {
   return agg.api
 }
-
-it('创建单例', () => {})
