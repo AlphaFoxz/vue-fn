@@ -218,14 +218,16 @@ export function createMultiInstanceAgg<
     beforeInitializeTasks.push(fn())
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
-  setTimeout(() =>
-    Promise.all(beforeInitializeTasks)
-      .then(() => {
-        initialize()
-      })
-      .catch((e: Error) => {
-        onInitializeError(e)
-      })
+  setTimeout(
+    () =>
+      Promise.all(beforeInitializeTasks)
+        .then(() => {
+          initialize()
+        })
+        .catch((e: Error) => {
+          onInitializeError(e)
+        }),
+    0
   )
   const scope = effectScope()
   const result = scope.run(() =>
@@ -324,14 +326,16 @@ export function createSingletonAgg<
     isInitialized: computed(() => isInitialized.value),
     untilInitialized,
   })
-  setTimeout(() =>
-    Promise.all(beforeInitializeTasks)
-      .then(() => {
-        initialize()
-      })
-      .catch((e: Error) => {
-        onInitializeError(e)
-      })
+  setTimeout(
+    () =>
+      Promise.all(beforeInitializeTasks)
+        .then(() => {
+          initialize()
+        })
+        .catch((e: Error) => {
+          onInitializeError(e)
+        }),
+    0
   )
 
   const states = (result.states || {}) as STATES

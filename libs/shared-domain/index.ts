@@ -36,7 +36,7 @@ export function createSharedFactory(channel: BroadcastChannel) {
   }
 
   function sharedRef<T>(name: string, value: T) {
-    setTimeout(() => channel.postMessage({ t: 'R', k: name }))
+    setTimeout(() => channel.postMessage({ t: 'R', k: name }), 0)
     const id = genId(name)
     map[id] = { data: shallowRef(value), trigger: () => {} }
     watch(map[id].data, (n: any, o: any) => {
