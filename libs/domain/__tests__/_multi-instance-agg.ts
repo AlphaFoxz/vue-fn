@@ -42,7 +42,7 @@ function createAgg(id: string) {
   })
 }
 
-export const PluginHelper = createPluginHelperByAggCreator(createAgg, (agg) => {
+export const PluginHelper = createPluginHelperByAggCreator(createAgg, (_agg) => {
   // delete aggMap[agg.__id]
   onDestroyCallbacked.value = true
 })
