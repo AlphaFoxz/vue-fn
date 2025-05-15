@@ -61,12 +61,12 @@ type PluginHelperApi<AGG extends DomainAgg> = AGG extends DomainMultiInstanceAgg
   ? SingletonPluginHelperApi<AGG>
   : never
 
-function createPluginHelper<AGG extends DomainAgg>(onDestroy?: (agg: AGG) => void): PluginHelperApi<AGG> {
+function createPluginHelper<AGG extends DomainAgg>(onDestroyFn?: (agg: AGG) => void): PluginHelperApi<AGG> {
   const setupPlugins: Record<string, DomainSetupPlugin<AGG>> = {}
   const hotSwapPlugins: Record<string, DomainHotSwapPlugin<AGG>> = {}
   const hotSwapPluginsCheck = new WeakMap<AGG, string[]>()
   const aggRecords: Record<string, AGG> = {}
-  const destroyedHandlers: ((agg: AGG) => void)[] = []
+  const customDestroyedHandlers: ((agg: AGG) => void)[] = []
 
   return Object.freeze({
     registerAgg(agg: AGG) {
@@ -93,7 +93,8 @@ function createPluginHelper<AGG extends DomainAgg>(onDestroy?: (agg: AGG) => voi
       if (isMultiInstanceAgg(agg)) {
         const handler = agg.api.events.destroyed.watchPublish(() => {
           delete aggRecords[agg.__id]
-          for (const fn of destroyedHandlers) {
+          onDestroyFn?.(agg)
+          for (const fn of customDestroyedHandlers) {
             fn(agg)
           }
           handler?.()
@@ -101,7 +102,7 @@ function createPluginHelper<AGG extends DomainAgg>(onDestroy?: (agg: AGG) => voi
       }
     },
     onDestroy(cb: (agg: AGG) => void) {
-      destroyedHandlers.push(cb)
+      customDestroyedHandlers.push(cb)
     },
     createSetupPlugin(args: DomainSetupPluginOptions<AGG> | DomainSetupPluginOptionsFn<AGG>): DomainSetupPlugin<AGG> {
       let opts: undefined | DomainSetupPluginOptions<AGG> = undefined

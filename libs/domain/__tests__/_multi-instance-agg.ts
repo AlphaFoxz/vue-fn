@@ -1,7 +1,8 @@
-import { ref } from 'vue'
+import { ref, shallowReactive } from 'vue'
 import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator, createBroadcastEvent } from '..'
 
-export const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
+export const aggMap: { [id: string]: ReturnType<typeof createAgg> } = shallowReactive({})
+export const onDestroyCallbacked = ref(false)
 
 function createAgg(id: string) {
   return createMultiInstanceAgg(id, (context) => {
@@ -42,7 +43,8 @@ function createAgg(id: string) {
 }
 
 export const PluginHelper = createPluginHelperByAggCreator(createAgg, (agg) => {
-  delete aggMap[agg.__id]
+  // delete aggMap[agg.__id]
+  onDestroyCallbacked.value = true
 })
 
 export function useMultiInstaceAgg(id: string) {

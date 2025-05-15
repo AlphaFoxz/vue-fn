@@ -119,6 +119,8 @@ it('注册插件时机过晚', async () => {
 it('注销聚合', async () => {
   let check = false
   const agg = multiInstanceExample.useMultiInstaceAgg('1')
+  expect(multiInstanceExample.aggMap['1']).not.toEqual(undefined)
+  expect(multiInstanceExample.aggMap).not.toEqual({})
   multiInstanceExample.PluginHelper.onDestroy(() => {
     check = true
   })
@@ -126,5 +128,6 @@ it('注销聚合', async () => {
   agg.destroy()
   await new Promise((resolve) => setTimeout(resolve))
   expect(check).toBe(true)
-  expect(multiInstanceExample.aggMap).toEqual({})
+  expect(multiInstanceExample.onDestroyCallbacked.value).toBeTruthy()
+  expect(multiInstanceExample.aggMap['1']).toEqual(undefined)
 })
