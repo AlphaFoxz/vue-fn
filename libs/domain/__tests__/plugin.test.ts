@@ -115,3 +115,16 @@ it('注册插件时机过晚', async () => {
   }
   expect(err).toBeInstanceOf(Error)
 })
+
+it('注销聚合', async () => {
+  let check = false
+  const agg = multiInstanceExample.useMultiInstaceAgg('1')
+  multiInstanceExample.PluginHelper.onDestroy(() => {
+    check = true
+  })
+  expect(check).toBe(false)
+  agg.destroy()
+  await new Promise((resolve) => setTimeout(resolve))
+  expect(check).toBe(true)
+  expect(multiInstanceExample.aggMap).toEqual({})
+})

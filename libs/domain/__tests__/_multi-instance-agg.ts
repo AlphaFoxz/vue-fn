@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator, createBroadcastEvent } from '..'
 
-const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
+export const aggMap: { [id: string]: ReturnType<typeof createAgg> } = {}
 
 function createAgg(id: string) {
   return createMultiInstanceAgg(id, (context) => {
@@ -41,7 +41,9 @@ function createAgg(id: string) {
   })
 }
 
-export const PluginHelper = createPluginHelperByAggCreator(createAgg)
+export const PluginHelper = createPluginHelperByAggCreator(createAgg, (agg) => {
+  delete aggMap[agg.__id]
+})
 
 export function useMultiInstaceAgg(id: string) {
   if (!aggMap[id]) {

@@ -34,11 +34,39 @@ export type DomainHotSwapPluginOptionsFn<AGG extends DomainAgg> = () => {
   unmount: (util: { api: NonNullable<AGG>['api']; __aggId: string }) => void
 }
 
-function createPluginHelper<AGG extends DomainAgg>() {
+type SingletonPluginHelperApi<AGG extends DomainSingletonAgg<any, any, any>> = Readonly<{
+  registerAgg: (agg: AGG) => void
+  createSetupPlugin: (args: DomainSetupPluginOptions<AGG> | DomainSetupPluginOptionsFn<AGG>) => DomainSetupPlugin<AGG>
+  createHotSwapPlugin: (
+    args: DomainHotSwapPluginOptions<AGG> | DomainHotSwapPluginOptionsFn<AGG>
+  ) => DomainHotSwapPlugin<AGG>
+  registerPlugin(plugin: DomainPlugin<AGG>): void
+  unregisterPlugin(plugin: DomainPlugin<AGG>): void
+}>
+
+type MultiInstancePluginHelperApi<AGG extends DomainMultiInstanceAgg<any, any, any, any>> = Readonly<{
+  registerAgg: (agg: AGG) => void
+  onDestroy: (cb: (agg: AGG) => void) => void
+  createSetupPlugin: (args: DomainSetupPluginOptions<AGG> | DomainSetupPluginOptionsFn<AGG>) => DomainSetupPlugin<AGG>
+  createHotSwapPlugin: (
+    args: DomainHotSwapPluginOptions<AGG> | DomainHotSwapPluginOptionsFn<AGG>
+  ) => DomainHotSwapPlugin<AGG>
+  registerPlugin(plugin: DomainPlugin<AGG>): void
+  unregisterPlugin(plugin: DomainPlugin<AGG>): void
+}>
+
+type PluginHelperApi<AGG extends DomainAgg> = AGG extends DomainMultiInstanceAgg<any, any, any, any>
+  ? MultiInstancePluginHelperApi<AGG>
+  : AGG extends DomainSingletonAgg<any, any, any>
+  ? SingletonPluginHelperApi<AGG>
+  : never
+
+function createPluginHelper<AGG extends DomainAgg>(onDestroy?: (agg: AGG) => void): PluginHelperApi<AGG> {
   const setupPlugins: Record<string, DomainSetupPlugin<AGG>> = {}
   const hotSwapPlugins: Record<string, DomainHotSwapPlugin<AGG>> = {}
   const hotSwapPluginsCheck = new WeakMap<AGG, string[]>()
   const aggRecords: Record<string, AGG> = {}
+  const destroyedHandlers: ((agg: AGG) => void)[] = []
 
   return Object.freeze({
     registerAgg(agg: AGG) {
@@ -61,6 +89,19 @@ function createPluginHelper<AGG extends DomainAgg>() {
         applyedHotSwapPlugins.push(p.__id)
       }
       hotSwapPluginsCheck.set(agg, applyedHotSwapPlugins)
+
+      if (isMultiInstanceAgg(agg)) {
+        const handler = agg.api.events.destroyed.watchPublish(() => {
+          delete aggRecords[agg.__id]
+          for (const fn of destroyedHandlers) {
+            fn(agg)
+          }
+          handler?.()
+        })
+      }
+    },
+    onDestroy(cb: (agg: AGG) => void) {
+      destroyedHandlers.push(cb)
     },
     createSetupPlugin(args: DomainSetupPluginOptions<AGG> | DomainSetupPluginOptionsFn<AGG>): DomainSetupPlugin<AGG> {
       let opts: undefined | DomainSetupPluginOptions<AGG> = undefined
@@ -138,13 +179,28 @@ function createPluginHelper<AGG extends DomainAgg>() {
         isNever(plugin)
       }
     },
-  })
+  }) as PluginHelperApi<AGG>
 }
 
-export function createPluginHelperByAggCreator<FUN extends (...args: any[]) => DomainAgg>(_: FUN) {
-  return createPluginHelper<ReturnType<FUN>>()
+export function createPluginHelperByAggCreator<FUN extends (...args: any[]) => DomainSingletonAgg<any, any, any>>(
+  _: FUN
+): SingletonPluginHelperApi<ReturnType<FUN>>
+
+export function createPluginHelperByAggCreator<
+  FUN extends (...args: any[]) => DomainMultiInstanceAgg<any, any, any, any>
+>(_: FUN, onDestroy: (agg: ReturnType<FUN>) => void): MultiInstancePluginHelperApi<ReturnType<FUN>>
+
+export function createPluginHelperByAggCreator<FUN extends (...args: any[]) => DomainAgg>(
+  _: FUN,
+  onDestroy?: (agg: ReturnType<FUN>) => void
+) {
+  return createPluginHelper<ReturnType<FUN>>(onDestroy)
 }
 
-export function createPluginHelperByAgg<AGG extends DomainAgg>(_: AGG) {
+export function createPluginHelperByAgg<AGG extends DomainSingletonAgg<any, any, any>>(_: AGG) {
   return createPluginHelper<AGG>()
+}
+
+function isMultiInstanceAgg(agg: DomainAgg): agg is DomainMultiInstanceAgg<any, any, any, any> {
+  return agg.type === 'MultiInstance'
 }
