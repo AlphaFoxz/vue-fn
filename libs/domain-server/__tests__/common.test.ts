@@ -11,9 +11,7 @@ it('createPromiseCallback 成功', async () => {
 
 it('createPromiseCallback 失败', async () => {
   const { promise, resolved, callback, error } = createPromiseCallback(() => {
-    if (Math.random() >= 0) {
-      return new Error('error')
-    }
+    return new Error('error')
   })
   try {
     callback()
