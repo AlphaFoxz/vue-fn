@@ -1,25 +1,25 @@
-import { ref } from 'vue'
+import { ref } from 'vue';
 import {
   createSingletonAgg,
   createRequestEvent,
   createPluginHelperByAgg,
   createBroadcastEvent,
-} from '..'
+} from '..';
 
 const agg = createSingletonAgg((context) => {
-  const name = ref('')
-  const status = ref('0')
-  const loadData = ref<string>()
+  const name = ref('');
+  const status = ref('0');
+  const loadData = ref<string>();
   const needLoadData = createRequestEvent({}).options({
     onReply(s: string) {
-      loadData.value = s
+      loadData.value = s;
     },
     onError() {},
-  })
+  });
   context.onBeforeInitialize(async () => {
-    await needLoadData.publishRequest({})
-  })
-  const onStatusChanged = createBroadcastEvent({ old: status, new: status })
+    await needLoadData.publishRequest({});
+  });
+  const onStatusChanged = createBroadcastEvent({ old: status, new: status });
   return {
     events: {
       needLoadData,
@@ -34,16 +34,16 @@ const agg = createSingletonAgg((context) => {
     commands: {
       untilInitialized: async () => context.untilInitialized,
       setStatus(s: string) {
-        onStatusChanged.publish({ old: status.value, new: s })
-        status.value = s
+        onStatusChanged.publish({ old: status.value, new: s });
+        status.value = s;
       },
     },
-  }
-})
+  };
+});
 
-export const PluginHelper = createPluginHelperByAgg(agg)
-PluginHelper.registerAgg(agg)
+export const PluginHelper = createPluginHelperByAgg(agg);
+PluginHelper.registerAgg(agg);
 
 export function useSingletonAgg() {
-  return agg.api
+  return agg.api;
 }

@@ -1,200 +1,214 @@
-import { it, expect } from 'vitest'
-import { createBroadcastEvent, createRequestEvent } from '../event'
-import { ref } from '@vue/reactivity'
+import { it, expect } from 'vitest';
+import { createBroadcastEvent, createRequestEvent, largeNumberIncrease } from '../event';
+import { ref } from '@vue/reactivity';
 
 it('createRequestEvent 触发事件', async () => {
   function register() {
-    const name = ref('wong')
-    const event = createRequestEvent({ name }).options({ onReply() {} })
-    return event
+    const name = ref('wong');
+    const event = createRequestEvent({ name }).options({ onReply() {} });
+    return event;
   }
-  const event = register()
-  const repo = { name: '', version: '0' }
+  const event = register();
+  const repo = { name: '', version: '0' };
   event.api.listenAndReply(({ data, version }) => {
-    repo.name = data.name
-    repo.version = version
-    return
-  })
-  event.publishRequest({ name: 'wong' })
-  expect(repo.name).toBe('wong')
-  expect(repo.version).toBe('1')
-  event.publishRequest({ name: 'wong' })
-  expect(repo.version).toBe('2')
-})
+    repo.name = data.name;
+    repo.version = version;
+    return;
+  });
+  event.publishRequest({ name: 'wong' });
+  expect(repo.name).toBe('wong');
+  expect(repo.version).toBe('1');
+  event.publishRequest({ name: 'wong' });
+  expect(repo.version).toBe('2');
+});
 
 it('createRequestEvent 顺序消费', async () => {
-  let gotMsg: string[] = []
-  let repliedMsg: string[] = []
+  let gotMsg: string[] = [];
+  let repliedMsg: string[] = [];
   const requestEvent = createRequestEvent<{
-    name: string
+    name: string;
   }>().options({
     onReply(data: { msg: string }) {
-      repliedMsg.push(data.msg)
+      repliedMsg.push(data.msg);
     },
-  })
+  });
   requestEvent.api.listenAndReply(({ data }) => {
-    gotMsg.push(data.name)
-    return { msg: 'OK' }
-  })
-  await requestEvent.publishRequest({ name: 'Andy' })
-  await requestEvent.publishRequest({ name: 'Bob' })
-  expect(gotMsg).toEqual(['Andy', 'Bob'])
-  expect(repliedMsg).toEqual(['OK', 'OK'])
-})
+    gotMsg.push(data.name);
+    return { msg: 'OK' };
+  });
+  await requestEvent.publishRequest({ name: 'Andy' });
+  await requestEvent.publishRequest({ name: 'Bob' });
+  expect(gotMsg).toEqual(['Andy', 'Bob']);
+  expect(repliedMsg).toEqual(['OK', 'OK']);
+});
 
 it('createRequestEvent 函数的回调', async () => {
-  let succeed = false
+  let succeed = false;
   function register() {
-    const name = ref('wong')
+    const name = ref('wong');
     const event = createRequestEvent({ name }).options({
       onReply() {
-        succeed = true
+        succeed = true;
       },
-    })
-    return event
+    });
+    return event;
   }
-  const event = register()
+  const event = register();
   event.api.listenAndReply(({ data }) => {
     if (data.name === 'Andy') {
-      succeed = true
-      return
+      succeed = true;
+      return;
     } else {
-      throw new Error('error')
+      throw new Error('error');
     }
-  })
-  event.publishRequest({ name: 'Andy' })
-  expect(succeed).toBeTruthy()
-})
+  });
+  event.publishRequest({ name: 'Andy' });
+  expect(succeed).toBeTruthy();
+});
 
 it('createRequestEvent 错误后停止Promise', async () => {
-  const listenerCounter = ref(0)
-  let succeed = false
+  const listenerCounter = ref(0);
+  let succeed = false;
   function createInitEvent() {
     const event = createRequestEvent({}).options({
       onReply(name: string) {
-        listenerCounter.value++
+        listenerCounter.value++;
         if (name !== 'Andy') {
-          return
+          return;
         }
-        succeed = true
+        succeed = true;
       },
       onError() {},
       isTerminateOnError: true,
-    })
-    return event
+    });
+    return event;
   }
-  const watchedEventsCounter = ref(0)
-  const initEvent = createInitEvent()
+  const watchedEventsCounter = ref(0);
+  const initEvent = createInitEvent();
   initEvent.api.listenAndReply(({}) => {
-    watchedEventsCounter.value++
-    return 'wong'
-  })
+    watchedEventsCounter.value++;
+    return 'wong';
+  });
   initEvent.api.listenAndReply(({}) => {
-    watchedEventsCounter.value++
-    return 'Andy'
-  })
-  initEvent.publishRequest({ name: 'Andy' })
-  expect(succeed).toBe(true)
-  expect(listenerCounter.value).toBe(2)
-  expect(watchedEventsCounter.value).toBe(2)
-})
+    watchedEventsCounter.value++;
+    return 'Andy';
+  });
+  initEvent.publishRequest({ name: 'Andy' });
+  expect(succeed).toBe(true);
+  expect(listenerCounter.value).toBe(2);
+  expect(watchedEventsCounter.value).toBe(2);
+});
 
 it('createRequestEvent 错误后不停止Promise', async () => {
-  const listenerCounter = ref(0)
-  const watchedCounter = ref(0)
-  let succeed = false
+  const listenerCounter = ref(0);
+  const watchedCounter = ref(0);
+  let succeed = false;
   function createInitEvent() {
     const event = createRequestEvent({}).options({
       onReply(name: string) {
-        listenerCounter.value++
+        listenerCounter.value++;
         if (name !== 'Andy') {
-          return new Error('incorrect name')
+          return new Error('incorrect name');
         }
-        succeed = true
+        succeed = true;
       },
-    })
-    return event
+    });
+    return event;
   }
-  const initEvent = createInitEvent()
+  const initEvent = createInitEvent();
   initEvent.api.listenAndReply(({}) => {
-    watchedCounter.value++
-    return 'wong'
-  })
+    watchedCounter.value++;
+    return 'wong';
+  });
   initEvent.api.listenAndReply(({}) => {
-    watchedCounter.value++
-    return 'Andy'
-  })
-  await initEvent.publishRequest({ name: 'Andy' })
-  expect(succeed).toBe(true)
-  expect(listenerCounter.value).toBe(2)
-  expect(watchedCounter.value).toBe(2)
-})
+    watchedCounter.value++;
+    return 'Andy';
+  });
+  await initEvent.publishRequest({ name: 'Andy' });
+  expect(succeed).toBe(true);
+  expect(listenerCounter.value).toBe(2);
+  expect(watchedCounter.value).toBe(2);
+});
 
 it('createRequestEvent 超时', async () => {
-  let replyed = false
+  let replyed = false;
   const event = createRequestEvent({}).options({
     onReply() {
-      replyed = true
+      replyed = true;
     },
     onError(e: Error) {
-      expect(e).toBeInstanceOf(Error)
-      throwed = true
+      expect(e).toBeInstanceOf(Error);
+      throwed = true;
     },
-  })
-  let throwed = false
-  event.publishRequest({})
-  expect(replyed).toBe(false)
-  expect(throwed).toBe(false)
+  });
+  let throwed = false;
+  event.publishRequest({});
+  expect(replyed).toBe(false);
+  expect(throwed).toBe(false);
   event.api.listenAndReply(() => {
-    throw new Error('error')
-  })
-  event.publishRequest({})
-  expect(replyed).toBe(false)
-  expect(throwed).toBe(true)
-})
+    throw new Error('error');
+  });
+  event.publishRequest({});
+  expect(replyed).toBe(false);
+  expect(throwed).toBe(true);
+});
 
 it('createBroadcastEvent 广播1', async () => {
-  const listenCounter = ref(0)
-  const listenedName = ref('')
+  const listenCounter = ref(0);
+  const listenedName = ref('');
   function createInitEvent() {
-    return createBroadcastEvent<{ name: string }>()
+    return createBroadcastEvent<{ name: string }>();
   }
-  const initEvent = createInitEvent()
+  const initEvent = createInitEvent();
   initEvent.api.listen(({ data }) => {
-    ++listenCounter.value
-    listenedName.value = data.name
-  })
+    ++listenCounter.value;
+    listenedName.value = data.name;
+  });
   initEvent.api.listen(({ data }) => {
-    ++listenCounter.value
-    listenedName.value = data.name
-  })
+    ++listenCounter.value;
+    listenedName.value = data.name;
+  });
 
-  initEvent.publish({ name: 'Andy' })
-  initEvent.publish({ name: 'Bob' })
-  expect(listenCounter.value).toBe(4)
-  expect(listenedName.value).toEqual('Bob')
-})
+  initEvent.publish({ name: 'Andy' });
+  initEvent.publish({ name: 'Bob' });
+  expect(listenCounter.value).toBe(4);
+  expect(listenedName.value).toEqual('Bob');
+});
 
 it('createBroadcastEvent 广播2', async () => {
-  const listenCounter = ref(0)
-  const listenedName = ref('')
+  const listenCounter = ref(0);
+  const listenedName = ref('');
   function createInitEvent() {
-    const name = ref('bob')
-    const event = createBroadcastEvent({ name })
-    return event
+    const name = ref('bob');
+    const event = createBroadcastEvent({ name });
+    return event;
   }
-  const initEvent = createInitEvent()
+  const initEvent = createInitEvent();
   initEvent.api.listen(({ data }) => {
-    ++listenCounter.value
-    listenedName.value = data.name
-  })
+    ++listenCounter.value;
+    listenedName.value = data.name;
+  });
   initEvent.api.listen(({ data }) => {
-    ++listenCounter.value
-    listenedName.value = data.name
-  })
+    ++listenCounter.value;
+    listenedName.value = data.name;
+  });
 
-  initEvent.publish({ name: 'Andy' })
-  initEvent.publish({ name: 'Bob' })
-  expect(listenCounter.value).toBe(4)
-  expect(listenedName.value).toEqual('Bob')
-})
+  initEvent.publish({ name: 'Andy' });
+  initEvent.publish({ name: 'Bob' });
+  expect(listenCounter.value).toBe(4);
+  expect(listenedName.value).toEqual('Bob');
+});
+
+it('largeNumberIncrement', () => {
+  let num = '9007199254740991';
+  num = largeNumberIncrease(num);
+  expect(num).toBe('9007199254740992');
+  num = largeNumberIncrease(num);
+  expect(num).toBe('9007199254740993');
+  num = largeNumberIncrease(num);
+  expect(num).toBe('9007199254740994');
+  num = largeNumberIncrease(num);
+  expect(num).toBe('9007199254740995');
+  num = largeNumberIncrease(num);
+  expect(num).toBe('9007199254740996');
+});
