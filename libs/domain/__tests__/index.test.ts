@@ -1,10 +1,17 @@
 import { expect, it } from 'vitest'
-import { createSingletonAgg, createBroadcastEvent, createRequestEvent, createMultiInstanceAgg } from '..'
+import {
+  createSingletonAgg,
+  createBroadcastEvent,
+  createRequestEvent,
+  createMultiInstanceAgg,
+} from '..'
 import { ref } from 'vue'
 
 it('event + agg 类型推断', async () => {
   const agg1 = createSingletonAgg(() => {
-    const requestEvent = createRequestEvent({}, () => {})
+    const requestEvent = createRequestEvent({}).options({
+      onReply() {},
+    })
     const broadcastEvent = createBroadcastEvent(() => {})
     return {
       events: {
@@ -13,11 +20,13 @@ it('event + agg 类型推断', async () => {
       },
     }
   })
-  agg1.api.events.requestEvent.watchPublishRequest
-  agg1.api.events.broadcastEvent.watchPublish
+  agg1.api.events.requestEvent.listenAndReply
+  agg1.api.events.broadcastEvent.listen
 
   const agg2 = createMultiInstanceAgg(1, () => {
-    const requestEvent = createRequestEvent({}, () => {})
+    const requestEvent = createRequestEvent({}).options({
+      onReply() {},
+    })
     const broadcastEvent = createBroadcastEvent(() => {})
     return {
       events: {
@@ -26,16 +35,18 @@ it('event + agg 类型推断', async () => {
       },
     }
   })
-  agg2.api.events.requestEvent.watchPublishRequest
-  agg2.api.events.broadcastEvent.watchPublish
+  agg2.api.events.requestEvent.listenAndReply
+  agg2.api.events.broadcastEvent.listen
 })
 
 it('event + agg 触发事件', async () => {
   const agg = createMultiInstanceAgg(1, () => {
     const version = ref(0)
     const name = ref('unknown')
-    const saveEvent = createRequestEvent({ name }, () => {
-      version.value++
+    const saveEvent = createRequestEvent({ name }).options({
+      onReply() {
+        version.value++
+      },
     })
     return {
       states: {
@@ -54,10 +65,10 @@ it('event + agg 触发事件', async () => {
   })
 
   const saved = ref(false)
-  agg.api.events.save.watchPublishRequest(({ data, reply }) => {
+  agg.api.events.save.listenAndReply(({ data }) => {
     saved.value = true
     expect(data.name).toBe('bob')
-    reply()
+    return
   })
   agg.api.commands.setName('bob')
   await new Promise((resolve) => setTimeout(resolve, 0))
@@ -75,7 +86,7 @@ it('createUnmountableAgg 测试自带的销毁事件', async () => {
   })
   await new Promise((resolve) => setTimeout(resolve, 0))
   const isDestroyed = ref(false)
-  agg.api.events.destroyed.watchPublish(() => {
+  agg.api.events.destroyed.listen(() => {
     isDestroyed.value = true
   })
   agg.api.destroy()
@@ -90,7 +101,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
     let age = 0
     const watchName = ref(name.value)
     const loadedEvent = createBroadcastEvent({ name, age })
-    loadedEvent.api.watchPublish(({ data }) => {
+    loadedEvent.api.listen(({ data }) => {
       watchName.value = data.name
     })
     return {
@@ -123,8 +134,10 @@ it('event中的data应该脱离响应式', async () => {
     const version = ref(0)
     const name = ref('unknown')
     const age = ref(0)
-    const saveEvent = createRequestEvent({ name, age }, () => {
-      version.value++
+    const saveEvent = createRequestEvent({ name, age }).options({
+      onReply() {
+        version.value++
+      },
     })
     return {
       states: {
@@ -147,7 +160,7 @@ it('event中的data应该脱离响应式', async () => {
   })
 
   const saved = ref(false)
-  agg.api.events.save.watchPublishRequest(({ data }) => {
+  agg.api.events.save.listenAndReply(({ data }) => {
     saved.value = true
     expect(data.name).toBe('bob')
     agg.api.commands.setAge(18)
@@ -163,9 +176,11 @@ it('聚合等待初始化', async () => {
     const isReady = ref(false)
     type UserInfo = { name: string; age: number }
     let user = ref<UserInfo>()
-    const initStatedEvent = createRequestEvent({}, (data: UserInfo) => {
-      user.value = data
-      isReady.value = true
+    const initStatedEvent = createRequestEvent({}).options({
+      onReply(data: UserInfo) {
+        user.value = data
+        isReady.value = true
+      },
     })
     async function untilReady() {
       if (isReady.value) {
@@ -196,23 +211,23 @@ it('聚合等待初始化', async () => {
   })
 
   const listenCounter = ref(0)
-  agg.api.events.initStated.watchPublishRequest(({ reply }) => {
+  agg.api.events.initStated.listenAndReply(({}) => {
     listenCounter.value++
-    reply({ name: 'eric', age: 18 })
+    return { name: 'eric', age: 18 }
   })
-  agg.api.events.initStated.watchPublishRequest(({ reply }) => {
+  agg.api.events.initStated.listenAndReply(({}) => {
     listenCounter.value++
-    reply({ name: 'eric', age: 18 })
+    return { name: 'eric', age: 18 }
   })
   await agg.api.commands.init()
   expect(agg.api.states.user.value?.name).toEqual('eric')
   expect(agg.api.states.user.value?.age).toEqual(18)
-  expect(listenCounter.value).toBe(1)
+  expect(listenCounter.value).toBe(2)
 })
 
 it('聚合onCreated创建', async () => {
   const agg = createSingletonAgg((context) => {
-    const startInitEvent = createRequestEvent({}, () => {})
+    const startInitEvent = createRequestEvent({}).options({ onReply() {} })
     context.onBeforeInitialize(async () => {
       await startInitEvent.publishRequest({})
     })
@@ -233,8 +248,8 @@ it('聚合onCreated创建', async () => {
 
   Promise.resolve().then(() =>
     setTimeout(() => {
-      agg.api.events.startInit.watchPublishRequest(({ reply }) => {
-        reply()
+      agg.api.events.startInit.listenAndReply(({}) => {
+        return
       })
     })
   )

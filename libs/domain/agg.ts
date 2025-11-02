@@ -8,6 +8,7 @@ import {
   onScopeDispose,
   ComputedRef,
   computed,
+  ref,
 } from 'vue'
 import {
   type DomainBroadcastEvent,
@@ -16,51 +17,77 @@ import {
   DomainEvent,
   DomainRequestEvent,
 } from './event'
-import { createPromiseCallback, genId } from './common'
+import { genId } from './common'
+import { Deferred } from 'ts-deferred'
 
-type AddDestroyedEvent<T extends object, K = 'destroyed'> = keyof T extends never
+type AddDestroyedEvent<
+  T extends object,
+  K = 'destroyed'
+> = keyof T extends never
   ? { destroyed: DomainBroadcastEvent<{}> }
   : {
-      [P in keyof T as P extends K ? 'destroyed' : P]: P extends K ? DomainBroadcastEvent<{}> : T[P]
+      [P in keyof T as P extends K ? 'destroyed' : P]: P extends K
+        ? DomainBroadcastEvent<{}>
+        : T[P]
     } & { destroyed: DomainBroadcastEvent<{}> }
-type AddDestroyedEventApi<T extends object, K = 'destroyed'> = keyof T extends never
+type AddDestroyedEventApi<
+  T extends object,
+  K = 'destroyed'
+> = keyof T extends never
   ? { destroyed: DomainDestroyedEventApi }
   : {
       [P in keyof T as P]: P extends K ? DomainBroadcastEvent<{}> : T[P]
     } & { destroyed: DomainDestroyedEventApi }
 
-type InferDomainEvent<EVENT extends DomainEvent<any, any>> = EVENT extends DomainBroadcastEvent<infer DATA>
-  ? DomainBroadcastEvent<DATA>
-  : EVENT extends DomainRequestEvent<infer DATA, infer CALLBACK>
-  ? DomainRequestEvent<DATA, CALLBACK>
-  : never
-type InferDomainEventApi<EVENT extends DomainEvent<any, any>> = InferDomainEvent<EVENT>['api']
+type InferDomainEvent<EVENT extends DomainEvent<any, any>> =
+  EVENT extends DomainBroadcastEvent<infer DATA>
+    ? DomainBroadcastEvent<DATA>
+    : EVENT extends DomainRequestEvent<infer DATA, infer REPLY_DATA>
+    ? DomainRequestEvent<DATA, REPLY_DATA>
+    : never
+type InferDomainEventApi<EVENT extends DomainEvent<any, any>> =
+  InferDomainEvent<EVENT>['api']
 
-type CustomerStateRecords<T> = keyof T extends never ? {} : Record<string, object>
-type CustomerCommandRecords<T> = keyof T extends never ? {} : Record<string, Function>
+type CustomerStateRecords<T> = keyof T extends never
+  ? {}
+  : Record<string, object>
+type CustomerCommandRecords<T> = keyof T extends never
+  ? {}
+  : Record<string, Function>
 type CustomerEventRecords<T> = keyof T extends never
   ? {}
-  : { [K in keyof T]: T[K] extends DomainRequestEvent<any, any> | DomainBroadcastEvent<any> ? T[K] : never }
+  : {
+      [K in keyof T]: T[K] extends
+        | DomainRequestEvent<any, any>
+        | DomainBroadcastEvent<any>
+        ? T[K]
+        : never
+    }
 export type DomainDestroyFunction = (...args: any[]) => void
 
-export type DomainStatesApi<STATES extends CustomerStateRecords<any>> = Readonly<{
-  [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
-}>
+export type DomainStatesApi<STATES extends CustomerStateRecords<any>> =
+  Readonly<{
+    [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>
+  }>
 
-export type DomainCommandsApi<COMMANDS extends CustomerCommandRecords<any>> = Readonly<{
-  [K in keyof COMMANDS]: COMMANDS[K] extends Function ? COMMANDS[K] : never
-}>
+export type DomainCommandsApi<COMMANDS extends CustomerCommandRecords<any>> =
+  Readonly<{
+    [K in keyof COMMANDS]: COMMANDS[K] extends Function ? COMMANDS[K] : never
+  }>
 
-export type DomainEventsApi<EVENTS extends CustomerEventRecords<any>> = EVENTS extends Record<
-  string,
-  DomainRequestEvent<any, any> | DomainBroadcastEvent<any>
->
-  ? Readonly<{
-      [K in keyof EVENTS as K]: InferDomainEventApi<EVENTS[K]>
-    }>
-  : EVENTS
+export type DomainEventsApi<EVENTS extends CustomerEventRecords<any>> =
+  EVENTS extends Record<
+    string,
+    DomainRequestEvent<any, any> | DomainBroadcastEvent<any>
+  >
+    ? Readonly<{
+        [K in keyof EVENTS as K]: InferDomainEventApi<EVENTS[K]>
+      }>
+    : EVENTS
 
-export type DomainMultiInstanceEventsApi<EVENTS extends CustomerEventRecords<EVENTS>> = EVENTS extends Record<
+export type DomainMultiInstanceEventsApi<
+  EVENTS extends CustomerEventRecords<EVENTS>
+> = EVENTS extends Record<
   string,
   DomainRequestEvent<any, any> | DomainBroadcastEvent<any>
 >
@@ -102,7 +129,11 @@ export function createMultiInstanceAggApi<
   events: EVENTS
   destroy: DomainDestroyFunction
 }): DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS> {
-  return createAggApiContent(option) as unknown as DomainMultiInstanceAggApi<STATES, COMMANDS, EVENTS>
+  return createAggApiContent(option) as unknown as DomainMultiInstanceAggApi<
+    STATES,
+    COMMANDS,
+    EVENTS
+  >
 }
 
 export function createAggApi<
@@ -145,7 +176,9 @@ function createAggApiContent<
   const states = shallowReadonly(option.states) as DomainStatesApi<STATES>
   const commands = readonly(option.commands) as DomainCommandsApi<COMMANDS>
   const events = {} as DomainEventsApi<EVENTS>
-  const optionEvents = option.events as { [k: string]: DomainRequestEvent<any, any> | DomainBroadcastEvent<any> }
+  const optionEvents = option.events as {
+    [k: string]: DomainRequestEvent<any, any> | DomainBroadcastEvent<any>
+  }
   for (const k in option.events) {
     ;(events as any)[k] = optionEvents[k].api
   }
@@ -206,11 +239,11 @@ export function createMultiInstanceAgg<
 ): DomainMultiInstanceAgg<ID, STATES, COMMANDS, EVENTS> {
   // 声明 生命周期 - init
   const {
-    callback: initialize,
-    onError: onInitializeError,
+    resolve: initialize,
+    reject: onInitializeError,
     promise: untilInitialized,
-    resolved: isInitialized,
-  } = createPromiseCallback(() => {}, false, 5000)
+  } = new Deferred<void>()
+  let isInitialized = ref(false)
   function onBeforeInitialize(fn: () => void) {
     if (isInitialized.value === true) {
       throw new Error('Agg already initialized')
@@ -218,16 +251,16 @@ export function createMultiInstanceAgg<
     beforeInitializeTasks.push(fn())
   }
   const beforeInitializeTasks: (void | Promise<void>)[] = []
-  setTimeout(
-    () =>
-      Promise.all(beforeInitializeTasks)
-        .then(() => {
-          initialize()
-        })
-        .catch((e: Error) => {
-          onInitializeError(e)
-        }),
-    0
+  setTimeout(() =>
+    Promise.all(beforeInitializeTasks)
+      .then(() => {
+        initialize()
+        isInitialized.value = true
+      })
+      .catch((e: Error) => {
+        onInitializeError(e)
+        throw e
+      })
   )
   const scope = effectScope()
   const result = scope.run(() =>
@@ -262,9 +295,10 @@ export function createMultiInstanceAgg<
       destroyedEvent?.publish({})
       for (const k in eventsExt) {
         const event = eventsExt[k]
-        for (const handle of (event as DomainEvent<any, any>).watchHandles) {
-          handle.stop()
-        }
+        ;(event as DomainEvent<any, any>).listeners.length = 0
+        // for (const handle of (event as DomainEvent<any, any>).listeners) {
+        //   handle()
+        // }
       }
       scope.stop()
     }) as DomainDestroyFunction
@@ -279,10 +313,14 @@ export function createMultiInstanceAgg<
       events: eventsExt as unknown as EVENTS,
       destroy,
     }),
-    isInitialized,
+    isInitialized: computed(() => isInitialized.value),
     async untilInitialized() {
       return await untilInitialized.catch((e: Error) => {
-        throw new Error(`Failed to initialize Agg: ${e.message}\nStack : ${e.stack || 'unkown'}`)
+        throw new Error(
+          `Failed to initialize Agg: ${e.message}\nStack : ${
+            e.stack || 'unkown'
+          }`
+        )
       })
     },
   })
@@ -305,11 +343,11 @@ export function createSingletonAgg<
   }
 ): DomainSingletonAgg<STATES, COMMANDS, EVENTS> {
   const {
-    callback: initialize,
-    onError: onInitializeError,
+    resolve: initialize,
+    reject: onInitializeError,
     promise: untilInitialized,
-    resolved: isInitialized,
-  } = createPromiseCallback(() => {}, false, 5000)
+  } = new Deferred<void>()
+  let isInitialized = ref(false)
   function onBeforeInitialize(fn: () => void) {
     if (isInitialized.value === true) {
       throw new Error('Agg already initialized')
@@ -331,6 +369,7 @@ export function createSingletonAgg<
       Promise.all(beforeInitializeTasks)
         .then(() => {
           initialize()
+          isInitialized.value = true
         })
         .catch((e: Error) => {
           onInitializeError(e)
@@ -350,10 +389,14 @@ export function createSingletonAgg<
       events,
       destroy: () => {},
     }),
-    isInitialized,
+    isInitialized: computed(() => isInitialized.value),
     async untilInitialized() {
       return await untilInitialized.catch((e: Error) => {
-        throw new Error(`Failed to initialize Agg: ${e.message}\nStack : ${e.stack || 'unkown'}`)
+        throw new Error(
+          `Failed to initialize Agg: ${e.message}\nStack : ${
+            e.stack || 'unkown'
+          }`
+        )
       })
     },
   }

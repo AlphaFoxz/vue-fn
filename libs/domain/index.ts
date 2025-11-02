@@ -3,8 +3,15 @@ export type { DomainRequestEvent, DomainBroadcastEvent } from './event'
 export { createBroadcastEvent, createRequestEvent } from './event'
 
 // 插件
-export type { DomainPlugin, DomainHotSwapPlugin, DomainSetupPlugin } from './plugin'
-export { createPluginHelperByAgg, createPluginHelperByAggCreator } from './plugin'
+export type {
+  DomainPlugin,
+  DomainHotSwapPlugin,
+  DomainSetupPlugin,
+} from './plugin'
+export {
+  createPluginHelperByAgg,
+  createPluginHelperByAggCreator,
+} from './plugin'
 
 // 聚合
 export type { DomainSingletonAgg, DomainMultiInstanceAgg } from './agg'

@@ -1,7 +1,13 @@
 import { ref, shallowReactive } from '@vue/reactivity'
-import { createRequestEvent, createMultiInstanceAgg, createPluginHelperByAggCreator, createBroadcastEvent } from '..'
+import {
+  createRequestEvent,
+  createMultiInstanceAgg,
+  createPluginHelperByAggCreator,
+  createBroadcastEvent,
+} from '..'
 
-export const aggMap: { [id: string]: ReturnType<typeof createAgg> } = shallowReactive({})
+export const aggMap: { [id: string]: ReturnType<typeof createAgg> } =
+  shallowReactive({})
 export const onDestroyCallbacked = ref(false)
 
 function createAgg(id: string) {
@@ -13,11 +19,13 @@ function createAgg(id: string) {
     const name = ref(id)
     const status = ref('0')
     const loadData = ref<string>()
-    const needLoadData = createRequestEvent({}, (s: string) => {
-      loadData.value = s
+    const needLoadData = createRequestEvent({}).options({
+      onReply(s: string) {
+        loadData.value = s
+      },
     })
     context.onBeforeInitialize(async () => {
-      await needLoadData.publishRequest({}).catch(() => {})
+      await needLoadData.publishRequest({})
     })
     const onStatusChanged = createBroadcastEvent({ old: status, new: status })
     return {
@@ -42,10 +50,13 @@ function createAgg(id: string) {
   })
 }
 
-export const PluginHelper = createPluginHelperByAggCreator(createAgg, (_agg) => {
-  // delete aggMap[agg.__id]
-  onDestroyCallbacked.value = true
-})
+export const PluginHelper = createPluginHelperByAggCreator(
+  createAgg,
+  (_agg) => {
+    // delete aggMap[agg.__id]
+    onDestroyCallbacked.value = true
+  }
+)
 
 export function useMultiInstaceAgg(id: string) {
   if (!aggMap[id]) {

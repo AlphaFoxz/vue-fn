@@ -27,7 +27,10 @@
     "test-ui": "vitest --coverage --ui"
   },
   "dependencies": {
-    "nanoid": "^5.1.5"
+    "immer": "^10.2.0",
+    "nanoid": "^5.1.5",
+    "ts-deferred": "^1.0.4",
+    "type-fest": "^5.1.0"
   },
   "peerDependencies": {
     "@vue/reactivity": ">=3.5.0",

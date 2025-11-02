@@ -1,177 +1,204 @@
-import {
-  type DeepReadonly,
-  type UnwrapNestedRefs,
-  WatchHandle,
-  readonly,
-  watch,
-  shallowRef,
-  computed,
-  shallowReactive,
-  triggerRef,
-  ComputedRef,
-  ShallowRef,
-} from 'vue'
-import { createPromiseCallback } from './common'
+import { Deferred } from 'ts-deferred'
+import { DeepReadonly, UnwrapNestedRefs } from 'vue'
 
-export type DomainEventData = { [key: string]: any }
+export type DomainRequestEventOptions<
+  DATA,
+  ON_REPLY extends (data: any) => void
+> = {
+  dataType?: DATA
+  onReply: ON_REPLY
+  onError?: (e: Error) => void
+  maxListenerCount?: number
+  isTerminateOnError?: boolean
+  timeoutMs?: number | false
+}
+export type DomainRequestEvent<DATA, REPLY_DATA> = {
+  listeners: DomainRequestEventListener<DATA, REPLY_DATA>[]
+  publishRequest: (
+    data: DeepReadonly<UnwrapNestedRefs<DATA>>
+  ) => Promise<REPLY_DATA>
+  api: {
+    latestVersion: Readonly<string>
+    listenAndReply: (
+      replyFn: DomainRequestEventListener<DATA, REPLY_DATA>
+    ) => () => void
+  }
+}
+export type DomainRequestEventListener<DATA, REPLY_DATA> = (param: {
+  data: DeepReadonly<UnwrapNestedRefs<DATA>>
+  version: string
+}) => REPLY_DATA
 
-export type DomainRequestEventReply = (...args: any[]) => void | Error
+export type DomainBroadcastEvent<DATA> = {
+  listeners: DomainBroadcastEventListener<DATA>[]
+  publish: (data: DeepReadonly<UnwrapNestedRefs<DATA>>) => void
+  api: {
+    latestVersion: Readonly<string>
+    listen: (
+      cb: (event: {
+        data: DeepReadonly<UnwrapNestedRefs<DATA>>
+        version: string
+      }) => void
+    ) => () => void
+  }
+}
+export type DomainBroadcastEventListener<DATA> = (param: {
+  data: DeepReadonly<UnwrapNestedRefs<DATA>>
+  version: string
+}) => void
 
-export type DomainEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> =
-  | DomainRequestEvent<DATA, REPLY>
+export type DomainDestroyedEventApi = DomainBroadcastEvent<{}>['api']
+
+export type DomainEvent<DATA, REPLY_DATA> =
+  | DomainRequestEvent<DATA, REPLY_DATA>
   | DomainBroadcastEvent<DATA>
 
-export type DomainDestroyedEventApi = ReturnType<typeof createBroadcastEvent<{}>>['api']
-
-export type DomainRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply> = {
-  watchHandles: WatchHandle[]
-  publishRequest: (data: UnwrapNestedRefs<DATA>) => Promise<void>
-  api: {
-    latestVersion: ComputedRef<ShallowRef<string>>
-    watchPublishRequest: (
-      cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string; reply: REPLY }) => void
-    ) => WatchHandle
-  }
-}
-
-export type DomainBroadcastEvent<DATA extends DomainEventData> = {
-  watchHandles: WatchHandle[]
-  publish: (data: UnwrapNestedRefs<DATA>) => void
-  api: {
-    latestVersion: ComputedRef<ShallowRef<string>>
-    watchPublish: (cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string }) => void) => WatchHandle
-  }
-}
-
-export function createRequestEvent<DATA extends DomainEventData, REPLY extends DomainRequestEventReply>(
-  _: DATA,
-  reply: REPLY,
-  stopOnError = false,
-  timeoutMs: number | false = false
-): DomainRequestEvent<DATA, REPLY> {
-  let version = shallowRef('0')
-  const map: Record<
-    string,
-    {
+export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
+  function options<
+    ON_REPLY extends (replyData: any) => void,
+    REPLY_DATA = Parameters<ON_REPLY>[0]
+  >(
+    options: DomainRequestEventOptions<DATA, ON_REPLY>
+  ): DomainRequestEvent<DATA, REPLY_DATA> {
+    let currentVersion = '0'
+    let unconsumedEvent: {
+      version: string
       data: DeepReadonly<UnwrapNestedRefs<DATA>>
-      reply: REPLY
-      onError: (e: Error) => void
-      resolved: ComputedRef<boolean>
-      error: ComputedRef<Error | undefined>
+      resolve: (data: REPLY_DATA) => void
+      reject: (e: Error) => void
+      timerId: NodeJS.Timeout | undefined
+    }[] = []
+    const listeners: DomainRequestEventListener<DATA, REPLY_DATA>[] = []
+    function updateEvent(
+      data: DeepReadonly<UnwrapNestedRefs<DATA>>,
+      resolve: (data: REPLY_DATA) => void,
+      reject: (e: Error) => void,
+      timerId: NodeJS.Timeout | undefined
+    ) {
+      const nextVer = largeNumberIncrease(currentVersion)
+      currentVersion = nextVer
+      unconsumedEvent.push({
+        version: nextVer,
+        data,
+        resolve,
+        reject,
+        timerId,
+      })
+      emitEvent()
     }
-  > = {}
-  const watchHandles = shallowReactive<WatchHandle[]>([])
-  function updateEvent(
-    data: UnwrapNestedRefs<DATA>,
-    rep: REPLY,
-    onError: (e: Error) => void,
-    resolved: ComputedRef<boolean>,
-    error: ComputedRef<Error | undefined>
-  ) {
-    const newVer = largeNumberIncrease(version.value)
-    const handle = watch([resolved, error], ([r, e]) => {
-      if (!map[newVer] || r || (stopOnError && e)) {
-        handle()
-        delete map[newVer]
-      }
-    })
-    map[newVer] = {
-      data: readonly(data) as DeepReadonly<UnwrapNestedRefs<DATA>>,
-      reply: rep,
-      onError,
-      resolved,
-      error,
-    }
-    version.value = newVer
-  }
-
-  const watchFn = (
-    cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string; reply: REPLY }) => void
-  ) => {
-    const handle = watch(version, (newVersion) => {
-      if (!map[newVersion] || map[newVersion].resolved.value || (stopOnError && map[newVersion].error.value)) {
+    function emitEvent() {
+      if (unconsumedEvent.length === 0 || listeners.length === 0) {
         return
       }
-      try {
-        cb({
-          data: map[newVersion].data,
-          version: newVersion,
-          reply: map[newVersion].reply,
-        })
-      } catch (e) {
-        if (!map[newVersion].error.value) {
-          map[newVersion].onError(e as Error)
+      for (const event of unconsumedEvent) {
+        const { version, data, resolve, reject, timerId } = event
+        const context = {
+          data,
+          version,
         }
+        for (const listener of listeners) {
+          try {
+            const replyData = listener(context)
+            options.onReply(replyData)
+            resolve(replyData)
+            timerId && clearTimeout(timerId)
+            // return await deferred.promise
+          } catch (e: unknown) {
+            if (options.onError && e instanceof Error) {
+              options.onError(e)
+              if (options.isTerminateOnError) {
+                reject(e)
+                timerId && clearTimeout(timerId)
+              }
+            } else {
+              throw new Error('caught a unknown error' + (e?.toString() || e))
+            }
+          }
+        }
+        unconsumedEvent.shift()
       }
-    })
-    watchHandles.push(handle)
-    if (map[version.value]) {
-      triggerRef(version)
     }
-    return handle
+    return {
+      listeners,
+      async publishRequest(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+        const deferred = new Deferred<REPLY_DATA>()
+        let timerId: NodeJS.Timeout | undefined
+        if (options.timeoutMs) {
+          timerId = setTimeout(() => {
+            deferred.reject(new Error(`timeout: ${options.timeoutMs} ms`))
+          }, options.timeoutMs)
+        }
+        updateEvent(data, deferred.resolve, deferred.reject, timerId)
+        return await deferred.promise
+      },
+      api: {
+        get latestVersion() {
+          return currentVersion
+        },
+        listenAndReply(
+          replyFn: DomainRequestEventListener<DATA, REPLY_DATA>
+        ): () => void {
+          if (
+            options.maxListenerCount &&
+            listeners.length >= options.maxListenerCount
+          ) {
+            throw new Error(
+              'too many listeners. max limit: ' + options.maxListenerCount
+            )
+          }
+          listeners.push(replyFn)
+          emitEvent()
+          return () => {
+            const index = listeners.indexOf(replyFn)
+            if (index !== -1) {
+              listeners.splice(index, 1)
+            }
+          }
+        },
+      },
+    }
   }
-
-  const publishFn = async (data: UnwrapNestedRefs<DATA>) => {
-    const { promise, callback: rep, resolved, error, onError } = createPromiseCallback(reply, stopOnError, timeoutMs)
-    updateEvent(data, rep, onError, resolved, error)
-    await promise
-  }
-
-  const api = {
-    latestVersion: computed(() => version),
-    watchPublishRequest: watchFn,
-  }
-
   return {
-    watchHandles,
-    publishRequest: publishFn,
-    api,
+    options,
   }
 }
 
-export function createBroadcastEvent<DATA extends DomainEventData = never>(): DomainBroadcastEvent<DATA>
-export function createBroadcastEvent<DATA extends DomainEventData>(_: DATA): DomainBroadcastEvent<DATA>
-export function createBroadcastEvent<DATA extends DomainEventData>(_?: DATA): DomainBroadcastEvent<DATA> {
-  const eventLifetime: number = 5
-  let version = shallowRef('0')
-  const map: Record<
-    string,
-    {
-      data: DeepReadonly<UnwrapNestedRefs<DATA>>
-    }
-  > = {}
-  const watchHandles = shallowReactive<WatchHandle[]>([])
-  const alifeEvents: string[] = []
-  function updateEvent(data: UnwrapNestedRefs<DATA>) {
-    const newVer = largeNumberIncrease(version.value)
-    map[newVer] = { data: readonly(data) as DeepReadonly<UnwrapNestedRefs<DATA>> }
-    const x = alifeEvents.length - eventLifetime
-    if (x > 0) {
-      alifeEvents.splice(0, x)
-    }
-    version.value = newVer
-    alifeEvents.push(newVer)
-  }
-
-  const watchFn = (cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string }) => void) => {
-    return watch(version, (newVersion) => {
-      cb({
-        data: map[newVersion].data,
-        version: newVersion,
-      })
-    })
-  }
-
-  const api = {
-    latestVersion: computed(() => version),
-    watchPublish: watchFn,
-  }
+export function createBroadcastEvent<DATA extends object = {}>(
+  _?: DATA
+): DomainBroadcastEvent<DATA> {
+  let currentVersion = '0'
+  const listeners: DomainBroadcastEventListener<DATA>[] = []
   return {
-    watchHandles,
-    publish: async (data: UnwrapNestedRefs<DATA>) => {
-      updateEvent(data)
+    listeners,
+    publish(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+      const context = {
+        data,
+        version: largeNumberIncrease(currentVersion),
+      }
+      currentVersion = context.version
+      for (const listener of listeners) {
+        listener(context)
+      }
     },
-    api,
+    api: {
+      get latestVersion() {
+        return currentVersion
+      },
+      listen(
+        cb: (options: {
+          data: DeepReadonly<UnwrapNestedRefs<DATA>>
+          version: string
+        }) => void
+      ): () => void {
+        listeners.push(cb)
+        return () => {
+          const index = listeners.indexOf(cb)
+          if (index >= 0) {
+            listeners.splice(index, 1)
+          }
+        }
+      },
+    },
   }
 }
 

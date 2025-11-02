@@ -6,8 +6,8 @@ it('注册单例插件-setupPlugin', async () => {
   const PLUGIN = singletonExample.PluginHelper.createSetupPlugin(() => {
     return {
       mount({ api }) {
-        api.events.needLoadData.watchPublishRequest(({ reply }) => {
-          reply('Hello')
+        api.events.needLoadData.listenAndReply(({}) => {
+          return 'Hello'
         })
       },
     }
@@ -23,8 +23,8 @@ it('注册单例插件-setupPlugin', async () => {
 it('注册多实例插件-setupPlugin', async () => {
   const PLUGIN = multiInstanceExample.PluginHelper.createSetupPlugin({
     mount({ api }) {
-      api.events.needLoadData.watchPublishRequest(({ reply }) => {
-        reply('Hello')
+      api.events.needLoadData.listenAndReply(({}) => {
+        return 'Hello'
       })
     },
   })
@@ -43,7 +43,7 @@ it('注册单例插件-hotSwapPlugin', async () => {
     let handler: Function | undefined = undefined
     return {
       mount({ api }) {
-        handler = api.events.onStatusChanged.watchPublish(({ data }) => {
+        handler = api.events.onStatusChanged.listen(({ data }) => {
           oldVal = data.old
           newVal = data.new
         })
@@ -74,7 +74,7 @@ it('注册多实例插件-hotSwapPlugin', async () => {
     let handler: Function | undefined = undefined
     return {
       mount({ api }) {
-        handler = api.events.onStatusChanged.watchPublish(({ data }) => {
+        handler = api.events.onStatusChanged.listen(({ data }) => {
           oldVal = data.old
           newVal = data.new
         })
@@ -100,8 +100,8 @@ it('注册多实例插件-hotSwapPlugin', async () => {
 it('注册插件时机过晚', async () => {
   const PLUGIN = singletonExample.PluginHelper.createSetupPlugin({
     mount({ api }) {
-      api.events.needLoadData.watchPublishRequest(({ reply }) => {
-        reply('Hello')
+      api.events.needLoadData.listenAndReply(({}) => {
+        return 'Hello'
       })
     },
   })

@@ -1,5 +1,5 @@
 import { Deferred } from 'ts-deferred'
-import { DeepReadonly, UnwrapNestedRefs } from '@vue/reactivity'
+import type { ReadonlyDeep } from 'type-fest'
 
 export type DomainRequestEventOptions<
   DATA,
@@ -14,9 +14,7 @@ export type DomainRequestEventOptions<
 }
 export type DomainRequestEvent<DATA, REPLY_DATA> = {
   listeners: DomainRequestEventListener<DATA, REPLY_DATA>[]
-  publishRequest: (
-    data: DeepReadonly<UnwrapNestedRefs<DATA>>
-  ) => Promise<REPLY_DATA>
+  publishRequest: (data: ReadonlyDeep<DATA>) => Promise<REPLY_DATA>
   api: {
     latestVersion: Readonly<string>
     listenAndReply: (
@@ -25,25 +23,22 @@ export type DomainRequestEvent<DATA, REPLY_DATA> = {
   }
 }
 export type DomainRequestEventListener<DATA, REPLY_DATA> = (param: {
-  data: DeepReadonly<UnwrapNestedRefs<DATA>>
+  data: ReadonlyDeep<DATA>
   version: string
 }) => REPLY_DATA
 
 export type DomainBroadcastEvent<DATA> = {
   listeners: DomainBroadcastEventListener<DATA>[]
-  publish: (data: DeepReadonly<UnwrapNestedRefs<DATA>>) => void
+  publish: (data: ReadonlyDeep<DATA>) => void
   api: {
     latestVersion: Readonly<string>
     listen: (
-      cb: (event: {
-        data: DeepReadonly<UnwrapNestedRefs<DATA>>
-        version: string
-      }) => void
+      cb: (event: { data: ReadonlyDeep<DATA>; version: string }) => void
     ) => () => void
   }
 }
 export type DomainBroadcastEventListener<DATA> = (param: {
-  data: DeepReadonly<UnwrapNestedRefs<DATA>>
+  data: ReadonlyDeep<DATA>
   version: string
 }) => void
 
@@ -63,14 +58,14 @@ export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
     let currentVersion = '0'
     let unconsumedEvent: {
       version: string
-      data: DeepReadonly<UnwrapNestedRefs<DATA>>
+      data: ReadonlyDeep<DATA>
       resolve: (data: REPLY_DATA) => void
       reject: (e: Error) => void
       timerId: NodeJS.Timeout | undefined
     }[] = []
     const listeners: DomainRequestEventListener<DATA, REPLY_DATA>[] = []
     function updateEvent(
-      data: DeepReadonly<UnwrapNestedRefs<DATA>>,
+      data: ReadonlyDeep<DATA>,
       resolve: (data: REPLY_DATA) => void,
       reject: (e: Error) => void,
       timerId: NodeJS.Timeout | undefined
@@ -120,7 +115,7 @@ export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
     }
     return {
       listeners,
-      async publishRequest(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+      async publishRequest(data: ReadonlyDeep<DATA>) {
         const deferred = new Deferred<REPLY_DATA>()
         let timerId: NodeJS.Timeout | undefined
         if (options.timeoutMs) {
@@ -170,7 +165,7 @@ export function createBroadcastEvent<DATA extends object = {}>(
   const listeners: DomainBroadcastEventListener<DATA>[] = []
   return {
     listeners,
-    publish(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+    publish(data: ReadonlyDeep<DATA>) {
       const context = {
         data,
         version: largeNumberIncrease(currentVersion),
@@ -185,10 +180,7 @@ export function createBroadcastEvent<DATA extends object = {}>(
         return currentVersion
       },
       listen(
-        cb: (options: {
-          data: DeepReadonly<UnwrapNestedRefs<DATA>>
-          version: string
-        }) => void
+        cb: (options: { data: ReadonlyDeep<DATA>; version: string }) => void
       ): () => void {
         listeners.push(cb)
         return () => {

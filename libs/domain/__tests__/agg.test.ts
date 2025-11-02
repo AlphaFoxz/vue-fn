@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { createSingletonAgg, createAggApi, createMultiInstanceAgg, createMultiInstanceAggApi } from '../agg'
-import { computed, isReadonly, onWatcherCleanup, reactive, ref, shallowReactive, watch } from 'vue'
+import {
+  createSingletonAgg,
+  createAggApi,
+  createMultiInstanceAgg,
+  createMultiInstanceAggApi,
+} from '../agg'
+import {
+  computed,
+  isReadonly,
+  onWatcherCleanup,
+  reactive,
+  ref,
+  shallowReactive,
+  watch,
+} from 'vue'
 import { createRequestEvent } from '../event'
 
 describe('测试聚合整体', () => {
@@ -120,8 +133,10 @@ describe('测试聚合整体', () => {
   it('单例untilInitialized 验证', async () => {
     const agg = createSingletonAgg(({ onBeforeInitialize }) => {
       const message = ref('')
-      const needMessageEvent = createRequestEvent({}, (msg: string) => {
-        message.value = msg
+      const needMessageEvent = createRequestEvent({}).options({
+        onReply(msg: string) {
+          message.value = msg
+        },
       })
       onBeforeInitialize(async () => {
         await needMessageEvent.publishRequest({})
@@ -136,8 +151,8 @@ describe('测试聚合整体', () => {
       }
     })
 
-    agg.api.events.needMessageEvent.watchPublishRequest(({ reply }) => {
-      reply('Hello')
+    agg.api.events.needMessageEvent.listenAndReply(({}) => {
+      return 'Hello'
     })
     await agg.untilInitialized()
     expect(agg.api.states.message.value).toBe('Hello')
@@ -146,8 +161,10 @@ describe('测试聚合整体', () => {
   it('多实例untilInitialized 验证', async () => {
     const agg = createMultiInstanceAgg(1, ({ onBeforeInitialize }) => {
       const message = ref('')
-      const needMessageEvent = createRequestEvent({}, (msg: string) => {
-        message.value = msg
+      const needMessageEvent = createRequestEvent({}).options({
+        onReply(msg: string) {
+          message.value = msg
+        },
       })
       onBeforeInitialize(async () => {
         await needMessageEvent.publishRequest({})
@@ -162,8 +179,8 @@ describe('测试聚合整体', () => {
       }
     })
 
-    agg.api.events.needMessageEvent.watchPublishRequest(({ reply }) => {
-      reply('Hello')
+    agg.api.events.needMessageEvent.listenAndReply(({}) => {
+      return 'Hello'
     })
     await agg.untilInitialized()
     expect(agg.api.states.message.value).toBe('Hello')

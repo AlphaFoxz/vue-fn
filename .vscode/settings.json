@@ -11,7 +11,7 @@
     "javascript.preferences.quoteStyle": "single",
     "typescript.format.semicolons": "remove",
     "typescript.preferences.quoteStyle": "single",
-    "prettier.printWidth": 120,
+    "prettier.printWidth": 80,
     "prettier.useTabs": false,
     "prettier.singleQuote": true,
     "prettier.semi": false,

@@ -1,15 +1,23 @@
 import { ref } from 'vue'
-import { createSingletonAgg, createRequestEvent, createPluginHelperByAgg, createBroadcastEvent } from '..'
+import {
+  createSingletonAgg,
+  createRequestEvent,
+  createPluginHelperByAgg,
+  createBroadcastEvent,
+} from '..'
 
 const agg = createSingletonAgg((context) => {
   const name = ref('')
   const status = ref('0')
   const loadData = ref<string>()
-  const needLoadData = createRequestEvent({}, (s: string) => {
-    loadData.value = s
+  const needLoadData = createRequestEvent({}).options({
+    onReply(s: string) {
+      loadData.value = s
+    },
+    onError() {},
   })
   context.onBeforeInitialize(async () => {
-    await needLoadData.publishRequest({}).catch(() => {})
+    await needLoadData.publishRequest({})
   })
   const onStatusChanged = createBroadcastEvent({ old: status, new: status })
   return {
