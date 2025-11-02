@@ -1,7 +1,3 @@
-import { produce } from 'immer';
-
-type A = { id: number } & { name: string } & { age: number };
-
 class States {
   private data = {} as const;
   public addStates<T extends Record<string, any>>(map: T): asserts this is typeof this & T {
