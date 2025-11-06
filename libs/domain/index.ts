@@ -10,5 +10,8 @@ export { createPluginHelperByAgg, createPluginHelperByAggCreator } from './plugi
 export type { DomainSingletonAgg, DomainMultiInstanceAgg } from './agg';
 export { createSingletonAgg, createMultiInstanceAgg } from './agg';
 
+// 绑定
+export { bindRef, bindDeepRef } from './bind';
+
 // 工具
 export * as Utils from './common';
