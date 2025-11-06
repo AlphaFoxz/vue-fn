@@ -1,6 +1,30 @@
 import { it, expect } from 'vitest';
 import { createBroadcastEvent, createRequestEvent, largeNumberIncrease } from '../event';
-import { ref } from '@vue/reactivity';
+import { reactive, ref } from '@vue/reactivity';
+
+it('createRequestEvent unref', async () => {
+  const str = ref('');
+  const num = ref(1);
+  const bool = ref(true);
+  const obj = reactive({});
+  const event = createRequestEvent({ str, num, bool, obj }).options({ onReply() {} });
+  let gotStr: string | undefined;
+  let gotNum: number | undefined;
+  let gotBool: boolean | undefined;
+  let gotObj: object | undefined;
+  event.api.listenAndReply(({ data }) => {
+    gotStr = data.str;
+    gotNum = data.num;
+    gotBool = data.bool;
+    gotObj = data.obj;
+  });
+  event.publishRequest({ str: '', num: 0, bool: true, obj });
+  await Promise.resolve();
+  expect(gotStr).toBe('');
+  expect(gotNum).toBe(0);
+  expect(gotBool).toBe(true);
+  expect(gotObj).toEqual({});
+});
 
 it('createRequestEvent 触发事件', async () => {
   function register() {
@@ -151,6 +175,30 @@ it('createRequestEvent 超时', async () => {
   event.publishRequest({});
   expect(replyed).toBe(false);
   expect(throwed).toBe(true);
+});
+
+it('createBroadcastEvent unref', async () => {
+  const str = ref('');
+  const num = ref(1);
+  const bool = ref(true);
+  const obj = reactive({});
+  const event = createBroadcastEvent({ str, num, bool, obj });
+  let gotStr: string | undefined;
+  let gotNum: number | undefined;
+  let gotBool: boolean | undefined;
+  let gotObj: object | undefined;
+  event.api.listen(({ data }) => {
+    gotStr = data.str;
+    gotNum = data.num;
+    gotBool = data.bool;
+    gotObj = data.obj;
+  });
+  event.publish({ str: '', num: 0, bool: true, obj });
+  await Promise.resolve();
+  expect(gotStr).toBe('');
+  expect(gotNum).toBe(0);
+  expect(gotBool).toBe(true);
+  expect(gotObj).toEqual({});
 });
 
 it('createBroadcastEvent 广播1', async () => {
