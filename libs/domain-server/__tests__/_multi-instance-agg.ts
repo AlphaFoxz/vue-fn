@@ -53,7 +53,7 @@ function createAgg(id: string) {
         setAge(v: number) {
           age.value = v;
         },
-        setMapRef(v: { a: number; b: string }) {
+        setMapRef(v: { a: number; b: string; c?: { c: number } }) {
           mapRef.value = v;
         },
         setMapRefA(a: number) {

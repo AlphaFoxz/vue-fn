@@ -11,7 +11,7 @@ export type { DomainSingletonAgg, DomainMultiInstanceAgg } from './agg';
 export { createSingletonAgg, createMultiInstanceAgg } from './agg';
 
 // 绑定
-export { bindRef, bindDeepRef } from './bind';
+export { bindRef } from './bind';
 
 // 工具
 export * as Utils from './common';

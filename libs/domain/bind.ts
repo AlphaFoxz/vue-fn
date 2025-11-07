@@ -7,54 +7,39 @@ import {
   ShallowReactive,
   isReactive,
   WatchCallback,
+  isRef,
+  WatchOptions,
+  unref,
 } from 'vue';
+import { deepClone, isEqual } from './common';
 
 type DomainAggState = DomainAggRefState | DomainAggReactiveState;
 type DomainAggRefState = Readonly<Ref<any>> | Readonly<ShallowRef<any>>;
-type DomainAggReactiveState = Readonly<Reactive<any>> | Readonly<ShallowReactive<any>>;
+type DomainAggReactiveState = Readonly<Reactive<object>> | Readonly<ShallowReactive<object>>;
+type SingleFieldRef = () => any;
 type DeepMutable<T> = {
   -readonly [P in keyof T]: T[P] extends object ? DeepMutable<T[P]> : T[P];
 };
-type InferValue<T> = T extends Readonly<Ref<any>> | Readonly<ShallowRef<any>>
+type InferValue<T> = T extends () => infer R
+  ? R
+  : T extends Readonly<Ref<any>> | Readonly<ShallowRef<any>> | Ref<any> | ShallowRef<any>
   ? DeepMutable<T['value']>
-  : T extends Readonly<Reactive<infer R>> | Readonly<ShallowReactive<infer R>>
+  : T extends Readonly<Reactive<infer R>> | Readonly<ShallowReactive<infer R>> | Reactive<infer R>
   ? DeepMutable<R>
   : never;
 
-export function bindRef<STATE extends DomainAggState, T = InferValue<STATE>>(
+export function bindRef<STATE extends DomainAggState | SingleFieldRef, T extends InferValue<STATE>>(
   aggState: STATE,
-  onChange: WatchCallback<T, T>,
-  forceSync: boolean = false
+  onChange: WatchCallback<T>,
+  watchOptions?: WatchOptions & { forceSync?: boolean }
 ): Ref<T> {
-  const result = ref(copyValue<T>(aggState));
-  if (!forceSync) {
-    watch(result, onChange as any, { deep: true });
-    return result as ShallowRef<T>;
+  const result = ref<T>(copyValue<T>(aggState));
+  if (!watchOptions?.forceSync) {
+    watch(result, onChange as any, watchOptions);
+    return result as Ref<T>;
   }
-  let latestSyncValue: any;
-  watch(aggState, (v) => {
-    result.value = v;
-    latestSyncValue = v;
-  });
-  watch(result, (n, o, onCleanup) => {
-    if (n === latestSyncValue) {
-      return;
-    }
-    onChange(n, o, onCleanup);
-  });
-  return result as Ref<T>;
-}
 
-export function bindDeepRef<STATE extends DomainAggState, T = InferValue<STATE>>(
-  aggState: STATE,
-  onChange: WatchCallback<T, T>,
-  forceSync: boolean = false
-): Ref<T> {
-  const result = ref(copyValue<T>(aggState));
-  if (!forceSync) {
-    watch(result, onChange as any, { deep: true });
-    return result as ShallowRef<T>;
-  }
+  watchOptions.forceSync = undefined;
   let latestSyncValue: any;
   watch(
     aggState,
@@ -62,30 +47,32 @@ export function bindDeepRef<STATE extends DomainAggState, T = InferValue<STATE>>
       latestSyncValue = v;
       result.value = v;
     },
-    { deep: true }
+    watchOptions
   );
   watch(
     result,
     (n, o, onCleanup) => {
-      if (n === latestSyncValue) {
+      if (isEqual(n, latestSyncValue)) {
         return;
       }
-      onChange(n, o, onCleanup);
+      onChange(n as T, o, onCleanup);
     },
-    { deep: true }
+    watchOptions
   );
   return result as Ref<T>;
 }
 
-function copyValue<T>(state: DomainAggState): T {
+function copyValue<T>(state: DomainAggState | SingleFieldRef): T {
   let t: T;
-  if (isReactive(state)) {
-    t = state as any;
+  if (typeof state === 'function') {
+    t = state();
+  } else if (isReactive(state) || isRef(state)) {
+    t = unref(state) as any;
   } else {
-    t = state.value;
+    throw new Error('invalid state');
   }
   if (typeof t === 'object') {
-    t = JSON.parse(JSON.stringify(t));
+    t = deepClone(t);
   }
   return t;
 }

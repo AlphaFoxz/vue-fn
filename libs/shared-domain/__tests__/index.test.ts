@@ -26,7 +26,7 @@ it('', async () => {
       },
     };
   });
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 100));
   expect(agg2.api.states.name.value).toBe('Init');
   agg1.api.commands.setName('Andy');
   await new Promise((resolve) => setTimeout(resolve, 10));

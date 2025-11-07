@@ -1,21 +1,20 @@
 import {
-  type UnwrapNestedRefs,
   type DeepReadonly,
   readonly,
   shallowReadonly,
-  EffectScope,
+  type EffectScope,
   effectScope,
   onScopeDispose,
-  ComputedRef,
+  type ComputedRef,
   computed,
   ref,
 } from '@vue/reactivity';
 import {
   type DomainBroadcastEvent,
   type DomainDestroyedEventApi,
+  type DomainEvent,
+  type DomainRequestEvent,
   createBroadcastEvent,
-  DomainEvent,
-  DomainRequestEvent,
 } from './event';
 import { genId } from './common';
 import { Deferred } from 'ts-deferred';
@@ -54,7 +53,7 @@ type CustomerEventRecords<T> = keyof T extends never
 export type DomainDestroyFunction = (...args: any[]) => void;
 
 export type DomainStatesApi<STATES extends CustomerStateRecords<any>> = Readonly<{
-  [K in keyof STATES]: DeepReadonly<UnwrapNestedRefs<STATES[K]>>;
+  [K in keyof STATES]: DeepReadonly<STATES[K]>;
 }>;
 
 export type DomainCommandsApi<COMMANDS extends CustomerCommandRecords<any>> = Readonly<{
