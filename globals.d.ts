@@ -1,5 +1,5 @@
-export {}
+export {};
 
 declare global {
-  function isNever(...args: never[]): void
+  function isNever(...args: never[]): void;
 }

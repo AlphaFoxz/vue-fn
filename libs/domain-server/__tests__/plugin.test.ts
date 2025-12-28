@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import * as singletonExample from './_singleton-agg';
-import * as multiInstanceExample from './_multi-instance-agg';
+import * as singletonExample from './_singleton-agg.dep';
+import * as multiInstanceExample from './_multi-instance-agg.dep';
 
 it('注册单例插件-setupPlugin', async () => {
   const PLUGIN = singletonExample.PluginHelper.createSetupPlugin(() => {
