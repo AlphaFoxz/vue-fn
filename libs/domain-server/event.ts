@@ -1,5 +1,5 @@
 import { Deferred } from 'ts-deferred';
-import { DeepReadonly, UnwrapNestedRefs } from '@vue/reactivity';
+import type { DeepReadonly, UnwrapNestedRefs } from '@vue/reactivity';
 
 export type DomainRequestEventOptions<DATA, ON_REPLY extends (data: any) => void> = {
   dataType?: DATA;

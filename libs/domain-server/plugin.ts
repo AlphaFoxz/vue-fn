@@ -1,5 +1,5 @@
-import { ComputedRef } from '@vue/reactivity';
-import type { DomainSingletonAgg, DomainMultiInstanceAgg } from './agg';
+import type { ComputedRef } from '@vue/reactivity';
+import type { DomainMultiInstanceAgg, DomainSingletonAgg } from './agg';
 import { genId } from './common';
 
 type DomainPluginType = 'Setup' | 'HotSwap';

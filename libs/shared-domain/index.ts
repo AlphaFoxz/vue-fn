@@ -1,4 +1,4 @@
-import { customRef, Ref, shallowRef, ShallowRef, watch } from 'vue';
+import { type Ref, type ShallowRef, customRef, shallowRef, watch } from 'vue';
 import { genId } from './common';
 
 type InferSharedRefs<T extends Record<string, any>> = {

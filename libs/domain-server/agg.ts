@@ -1,13 +1,13 @@
 import {
-  type DeepReadonly,
-  readonly,
-  shallowReadonly,
-  type EffectScope,
-  effectScope,
-  onScopeDispose,
   type ComputedRef,
+  type DeepReadonly,
+  type EffectScope,
   computed,
+  effectScope,
+  readonly,
   ref,
+  shallowReadonly,
+  onScopeDispose,
 } from '@vue/reactivity';
 import {
   type DomainBroadcastEvent,

@@ -1,15 +1,15 @@
 import {
-  watch,
-  ref,
-  Ref,
-  ShallowRef,
-  Reactive,
-  ShallowReactive,
+  type Reactive,
+  type Ref,
+  type ShallowRef,
+  type ShallowReactive,
+  type WatchCallback,
+  type WatchOptions,
   isReactive,
-  WatchCallback,
   isRef,
-  WatchOptions,
+  ref,
   unref,
+  watch,
 } from '@vue/reactivity';
 import { deepClone, isEqual } from './common';
 

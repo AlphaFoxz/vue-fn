@@ -1,4 +1,4 @@
-import { type ShallowRef, shallowRef } from 'vue';
+import { type DeepReadonly, type ShallowRef, type UnwrapNestedRefs, shallowRef } from 'vue';
 
 export type TimeoutApi = {
   resolve: () => void;
@@ -79,4 +79,30 @@ export function createTimeout(
     isTimeout,
   };
   return api;
+}
+
+type InferResolve<T> = undefined | void | unknown extends T
+  ? () => void
+  : (data: T | PromiseLike<T>) => void;
+type InferData<T> = undefined | void | unknown extends T
+  ? unknown
+  : DeepReadonly<UnwrapNestedRefs<T>>;
+export function createDeferred<T, E = Error>() {
+  type Data = InferData<T>;
+  let resolve: InferResolve<Data>;
+  let reject: (cause?: E) => void;
+  const promise = new Promise<Data>((res, rej) => {
+    resolve = res as any;
+    reject = rej;
+  });
+  const exposeResolve = ((data?: Data): void => {
+    resolve(data as any);
+  }) as InferResolve<Data>;
+  return {
+    promise,
+    resolve: exposeResolve,
+    reject: (cause?: E) => {
+      reject(cause);
+    },
+  };
 }

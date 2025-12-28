@@ -1,5 +1,5 @@
-import { ComputedRef } from 'vue';
-import type { DomainSingletonAgg, DomainMultiInstanceAgg } from './agg';
+import type { ComputedRef } from 'vue';
+import type { DomainMultiInstanceAgg, DomainSingletonAgg } from './agg';
 import { genId } from './common';
 
 type DomainPluginType = 'Setup' | 'HotSwap';
