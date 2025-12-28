@@ -7,7 +7,12 @@ it('createRequestEvent unref', async () => {
   const num = ref(1);
   const bool = ref(true);
   const obj = reactive({});
-  const event = createRequestEvent({ str, num, bool, obj }).options({ onReply() {} });
+  const event = createRequestEvent<
+    { str: typeof str; num: typeof num; bool: typeof bool; obj: typeof obj },
+    undefined
+  >().options({
+    onReply() {},
+  });
   let gotStr: string | undefined;
   let gotNum: number | undefined;
   let gotBool: boolean | undefined;
@@ -29,7 +34,7 @@ it('createRequestEvent unref', async () => {
 it('createRequestEvent 触发事件', async () => {
   function register() {
     const name = ref('wong');
-    const event = createRequestEvent({ name }).options({ onReply() {} });
+    const event = createRequestEvent<{ name: typeof name }>().options({ onReply() {} });
     return event;
   }
   const event = register();
@@ -49,9 +54,12 @@ it('createRequestEvent 触发事件', async () => {
 it('createRequestEvent 顺序消费', async () => {
   let gotMsg: string[] = [];
   let repliedMsg: string[] = [];
-  const requestEvent = createRequestEvent<{
-    name: string;
-  }>().options({
+  const requestEvent = createRequestEvent<
+    {
+      name: string;
+    },
+    { msg: string }
+  >().options({
     onReply(data: { msg: string }) {
       repliedMsg.push(data.msg);
     },
@@ -70,7 +78,7 @@ it('createRequestEvent 函数的回调', async () => {
   let succeed = false;
   function register() {
     const name = ref('wong');
-    const event = createRequestEvent({ name }).options({
+    const event = createRequestEvent<{ name: typeof name }>().options({
       onReply() {
         succeed = true;
       },
@@ -94,7 +102,7 @@ it('createRequestEvent 错误后停止Promise', async () => {
   const listenerCounter = ref(0);
   let succeed = false;
   function createInitEvent() {
-    const event = createRequestEvent({}).options({
+    const event = createRequestEvent<{}, string>().options({
       onReply(name: string) {
         listenerCounter.value++;
         if (name !== 'Andy') {
@@ -128,7 +136,7 @@ it('createRequestEvent 错误后不停止Promise', async () => {
   const watchedCounter = ref(0);
   let succeed = false;
   function createInitEvent() {
-    const event = createRequestEvent({}).options({
+    const event = createRequestEvent<{}, string>().options({
       onReply(name: string) {
         listenerCounter.value++;
         if (name !== 'Andy') {
@@ -156,7 +164,7 @@ it('createRequestEvent 错误后不停止Promise', async () => {
 
 it('createRequestEvent 超时', async () => {
   let replyed = false;
-  const event = createRequestEvent({}).options({
+  const event = createRequestEvent<{}>().options({
     onReply() {
       replyed = true;
     },
@@ -182,7 +190,12 @@ it('createBroadcastEvent unref', async () => {
   const num = ref(1);
   const bool = ref(true);
   const obj = reactive({});
-  const event = createBroadcastEvent({ str, num, bool, obj });
+  const event = createBroadcastEvent<{
+    str: typeof str;
+    num: typeof num;
+    bool: typeof bool;
+    obj: typeof obj;
+  }>();
   let gotStr: string | undefined;
   let gotNum: number | undefined;
   let gotBool: boolean | undefined;
@@ -228,7 +241,7 @@ it('createBroadcastEvent 广播2', async () => {
   const listenedName = ref('');
   function createInitEvent() {
     const name = ref('bob');
-    const event = createBroadcastEvent({ name });
+    const event = createBroadcastEvent<{ name: typeof name }>();
     return event;
   }
   const initEvent = createInitEvent();

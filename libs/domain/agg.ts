@@ -263,7 +263,7 @@ export function createMultiInstanceAgg<
   const eventsExt = (result.events || {}) as AddDestroyedEvent<EVENTS>;
   let destroyedEvent: DomainBroadcastEvent<{}> | undefined;
   if (!eventsExt.destroyed) {
-    destroyedEvent = createBroadcastEvent({});
+    destroyedEvent = createBroadcastEvent<{}>();
     eventsExt.destroyed = destroyedEvent;
   } else {
     destroyedEvent = eventsExt.destroyed;

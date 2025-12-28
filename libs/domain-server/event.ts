@@ -43,21 +43,21 @@ export type DomainEvent<DATA, REPLY_DATA> =
   | DomainRequestEvent<DATA, REPLY_DATA>
   | DomainBroadcastEvent<DATA>;
 
-export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
-  function options<ON_REPLY extends (replyData: any) => void, REPLY_DATA = Parameters<ON_REPLY>[0]>(
-    options: DomainRequestEventOptions<DATA, ON_REPLY>
-  ): DomainRequestEvent<DATA, REPLY_DATA> {
+export function createRequestEvent<EVT_DATA extends object = never, REPLY_DATA = void>() {
+  function options<ON_REPLY extends (replyData: REPLY_DATA) => void>(
+    options: DomainRequestEventOptions<EVT_DATA, ON_REPLY>
+  ): DomainRequestEvent<EVT_DATA, REPLY_DATA> {
     let currentVersion = '0';
     let unconsumedEvent: {
       version: string;
-      data: DeepReadonly<UnwrapNestedRefs<DATA>>;
+      data: DeepReadonly<UnwrapNestedRefs<EVT_DATA>>;
       resolve: (data: REPLY_DATA) => void;
       reject: (e: Error) => void;
       timerId: NodeJS.Timeout | undefined;
     }[] = [];
-    const listeners: DomainRequestEventListener<DATA, REPLY_DATA>[] = [];
+    const listeners: DomainRequestEventListener<EVT_DATA, REPLY_DATA>[] = [];
     function updateEvent(
-      data: DeepReadonly<UnwrapNestedRefs<DATA>>,
+      data: DeepReadonly<UnwrapNestedRefs<EVT_DATA>>,
       resolve: (data: REPLY_DATA) => void,
       reject: (e: Error) => void,
       timerId: NodeJS.Timeout | undefined
@@ -107,7 +107,7 @@ export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
     }
     return {
       listeners,
-      async publishRequest(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+      async publishRequest(data: DeepReadonly<UnwrapNestedRefs<EVT_DATA>>) {
         const deferred = new Deferred<REPLY_DATA>();
         let timerId: NodeJS.Timeout | undefined;
         if (options.timeoutMs) {
@@ -122,7 +122,7 @@ export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
         get latestVersion() {
           return currentVersion;
         },
-        listenAndReply(replyFn: DomainRequestEventListener<DATA, REPLY_DATA>): () => void {
+        listenAndReply(replyFn: DomainRequestEventListener<EVT_DATA, REPLY_DATA>): () => void {
           if (options.maxListenerCount && listeners.length >= options.maxListenerCount) {
             throw new Error('too many listeners. max limit: ' + options.maxListenerCount);
           }
@@ -143,14 +143,14 @@ export function createRequestEvent<DATA extends object = {}>(_dataType?: DATA) {
   };
 }
 
-export function createBroadcastEvent<DATA extends object = {}>(
-  _?: DATA
-): DomainBroadcastEvent<DATA> {
+export function createBroadcastEvent<
+  EVT_DATA extends object = never
+>(): DomainBroadcastEvent<EVT_DATA> {
   let currentVersion = '0';
-  const listeners: DomainBroadcastEventListener<DATA>[] = [];
+  const listeners: DomainBroadcastEventListener<EVT_DATA>[] = [];
   return {
     listeners,
-    publish(data: DeepReadonly<UnwrapNestedRefs<DATA>>) {
+    publish(data: DeepReadonly<UnwrapNestedRefs<EVT_DATA>>) {
       const context = {
         data,
         version: largeNumberIncrease(currentVersion),
@@ -165,7 +165,7 @@ export function createBroadcastEvent<DATA extends object = {}>(
         return currentVersion;
       },
       listen(
-        cb: (options: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string }) => void
+        cb: (options: { data: DeepReadonly<UnwrapNestedRefs<EVT_DATA>>; version: string }) => void
       ): () => void {
         listeners.push(cb);
         return () => {
@@ -187,6 +187,7 @@ export function largeNumberIncrease(num1: string): string {
   // 反转字符串以便从最低位开始相加
   let str1 = num1.split('').reverse().join('');
   let str2 = '1';
+
   const maxLength = Math.max(str1.length, str2.length);
   let carry = 0;
   let result = [];

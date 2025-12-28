@@ -13,7 +13,7 @@ const agg = createSingletonAgg((context) => {
   const mapRef = ref({ a: 1, b: '2' });
   const mapReactive = reactive({ a: 1, b: '2' });
   const loadData = ref<string>();
-  const needLoadData = createRequestEvent({}).options({
+  const needLoadData = createRequestEvent<{}, string>().options({
     onReply(s: string) {
       loadData.value = s;
     },
@@ -22,7 +22,7 @@ const agg = createSingletonAgg((context) => {
   context.onBeforeInitialize(async () => {
     await needLoadData.publishRequest({});
   });
-  const onStatusChanged = createBroadcastEvent({ old: status, new: status });
+  const onStatusChanged = createBroadcastEvent<{ old: typeof status; new: typeof status }>();
   return {
     events: {
       needLoadData,

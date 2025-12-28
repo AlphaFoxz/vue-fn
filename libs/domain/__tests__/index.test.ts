@@ -9,10 +9,10 @@ import { ref } from 'vue';
 
 it('event + agg 类型推断', async () => {
   const agg1 = createSingletonAgg(() => {
-    const requestEvent = createRequestEvent({}).options({
+    const requestEvent = createRequestEvent<{}>().options({
       onReply() {},
     });
-    const broadcastEvent = createBroadcastEvent(() => {});
+    const broadcastEvent = createBroadcastEvent<{}>();
     return {
       events: {
         requestEvent,
@@ -24,10 +24,10 @@ it('event + agg 类型推断', async () => {
   agg1.api.events.broadcastEvent.listen;
 
   const agg2 = createMultiInstanceAgg(1, () => {
-    const requestEvent = createRequestEvent({}).options({
+    const requestEvent = createRequestEvent<{}>().options({
       onReply() {},
     });
-    const broadcastEvent = createBroadcastEvent(() => {});
+    const broadcastEvent = createBroadcastEvent<{}>();
     return {
       events: {
         requestEvent,
@@ -43,7 +43,7 @@ it('event + agg 触发事件', async () => {
   const agg = createMultiInstanceAgg(1, () => {
     const version = ref(0);
     const name = ref('unknown');
-    const saveEvent = createRequestEvent({ name }).options({
+    const saveEvent = createRequestEvent<{ name: typeof name }>().options({
       onReply() {
         version.value++;
       },
@@ -100,7 +100,7 @@ it('createUnmountableAgg 测试销毁时应清除内部event.watch副作用', as
     const name = ref('');
     let age = 0;
     const watchName = ref(name.value);
-    const loadedEvent = createBroadcastEvent({ name, age });
+    const loadedEvent = createBroadcastEvent<{ name: typeof name; age: typeof age }>();
     loadedEvent.api.listen(({ data }) => {
       watchName.value = data.name;
     });
@@ -134,7 +134,7 @@ it('event中的data应该脱离响应式', async () => {
     const version = ref(0);
     const name = ref('unknown');
     const age = ref(0);
-    const saveEvent = createRequestEvent({ name, age }).options({
+    const saveEvent = createRequestEvent<{ name: typeof name; age: typeof age }>().options({
       onReply() {
         version.value++;
       },
@@ -176,7 +176,7 @@ it('聚合等待初始化', async () => {
     const isReady = ref(false);
     type UserInfo = { name: string; age: number };
     let user = ref<UserInfo>();
-    const initStatedEvent = createRequestEvent({}).options({
+    const initStatedEvent = createRequestEvent<{}, UserInfo>().options({
       onReply(data: UserInfo) {
         user.value = data;
         isReady.value = true;
@@ -227,7 +227,7 @@ it('聚合等待初始化', async () => {
 
 it('聚合onCreated创建', async () => {
   const agg = createSingletonAgg((context) => {
-    const startInitEvent = createRequestEvent({}).options({ onReply() {} });
+    const startInitEvent = createRequestEvent<{}>().options({ onReply() {} });
     context.onBeforeInitialize(async () => {
       await startInitEvent.publishRequest({});
     });

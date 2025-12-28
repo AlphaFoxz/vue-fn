@@ -21,7 +21,7 @@ function createAgg(id: string) {
     const mapRef = ref({ a: 1, b: '2' });
     const mapReactive = reactive({ a: 1, b: '2' });
     const loadData = ref<string>();
-    const needLoadData = createRequestEvent({}).options({
+    const needLoadData = createRequestEvent<{}, string>().options({
       onReply(s: string) {
         loadData.value = s;
       },
@@ -30,7 +30,7 @@ function createAgg(id: string) {
     context.onBeforeInitialize(async () => {
       await needLoadData.publishRequest({});
     });
-    const onStatusChanged = createBroadcastEvent({ old: status, new: status });
+    const onStatusChanged = createBroadcastEvent<{ old: typeof status; new: typeof status }>();
     return {
       events: {
         needLoadData,

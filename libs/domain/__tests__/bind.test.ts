@@ -136,11 +136,15 @@ it('bindRef forceSync', async () => {
   expect(age.value).toBe(18);
   expect(mapRef.value).toEqual({ a: 2, b: '3' });
   expect(mapReactive.value).toEqual({ a: 2, b: '3' });
+  expect(mapA1.value).toBe(2);
+  expect(mapA2.value).toBe(2);
   agg.setMapRefA(3);
   agg.setMapReactiveA(3);
   await new Promise((resolve) => setTimeout(resolve));
   expect(mapRef.value).toEqual({ a: 3, b: '3' });
   expect(mapReactive.value).toEqual({ a: 3, b: '3' });
+  expect(mapA1.value).toBe(3);
+  expect(mapA2.value).toBe(3);
 });
 
 it('bindRef multi page', async () => {

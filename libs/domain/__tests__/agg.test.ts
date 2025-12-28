@@ -125,7 +125,7 @@ describe('测试聚合整体', () => {
   it('单例untilInitialized 验证', async () => {
     const agg = createSingletonAgg(({ onBeforeInitialize }) => {
       const message = ref('');
-      const needMessageEvent = createRequestEvent({}).options({
+      const needMessageEvent = createRequestEvent<{}, string>().options({
         onReply(msg: string) {
           message.value = msg;
         },
@@ -153,7 +153,7 @@ describe('测试聚合整体', () => {
   it('多实例untilInitialized 验证', async () => {
     const agg = createMultiInstanceAgg(1, ({ onBeforeInitialize }) => {
       const message = ref('');
-      const needMessageEvent = createRequestEvent({}).options({
+      const needMessageEvent = createRequestEvent<{}, string>().options({
         onReply(msg: string) {
           message.value = msg;
         },
