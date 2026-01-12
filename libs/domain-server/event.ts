@@ -13,28 +13,28 @@ export type DomainRequestEvent<DATA, REPLY_DATA> = {
   listeners: DomainRequestEventListener<DATA, REPLY_DATA>[];
   publishRequest: (data: DeepReadonly<UnwrapNestedRefs<DATA>>) => Promise<REPLY_DATA>;
   api: {
-    latestVersion: Readonly<string>;
+    readonly latestVersion: string;
     listenAndReply: (replyFn: DomainRequestEventListener<DATA, REPLY_DATA>) => () => void;
   };
 };
 export type DomainRequestEventListener<DATA, REPLY_DATA> = (param: {
-  data: DeepReadonly<UnwrapNestedRefs<DATA>>;
-  version: string;
+  readonly data: DeepReadonly<UnwrapNestedRefs<DATA>>;
+  readonly version: string;
 }) => REPLY_DATA;
 
 export type DomainBroadcastEvent<DATA> = {
   listeners: DomainBroadcastEventListener<DATA>[];
   publish: (data: DeepReadonly<UnwrapNestedRefs<DATA>>) => void;
   api: {
-    latestVersion: Readonly<string>;
+    readonly latestVersion: string;
     listen: (
       cb: (event: { data: DeepReadonly<UnwrapNestedRefs<DATA>>; version: string }) => void
     ) => () => void;
   };
 };
 export type DomainBroadcastEventListener<DATA> = (param: {
-  data: DeepReadonly<UnwrapNestedRefs<DATA>>;
-  version: string;
+  readonly data: DeepReadonly<UnwrapNestedRefs<DATA>>;
+  readonly version: string;
 }) => void;
 
 export type DomainDestroyedEventApi = DomainBroadcastEvent<{}>['api'];
