@@ -1,6 +1,6 @@
 {
   "name": "vue-fn",
-  "version": "0.3.0-rc",
+  "version": "0.4.0-rc",
   "description": "一个 vue3 的响应式函数工具包",
   "type": "module",
   "sideEffects": false,
