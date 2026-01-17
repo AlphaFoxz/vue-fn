@@ -41,7 +41,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          cache-dependency-path: github-pages/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
           node-version: 22
           cache: pnpm
       - name: Setup Pages
