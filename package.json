@@ -1,7 +1,7 @@
 {
   "name": "vue-fn",
-  "version": "0.4.0-rc",
-  "description": "一个 vue3 的响应式函数工具包",
+  "version": "0.4.1-rc",
+  "description": "A Vue 3 reactive function utility library providing domain-driven design patterns and reactive state management utilities.",
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -9,7 +9,25 @@
   ],
   "private": true,
   "keywords": [
-    "vue"
+    "vue",
+    "vue3",
+    "vue-utils",
+    "reactivity",
+    "reactive",
+    "state",
+    "state-management",
+    "shared-state",
+    "cross-tab",
+    "domain-driven-design",
+    "event-driven",
+    "aggregation",
+    "event-bus",
+    "plugin-system",
+    "broadcast-channel",
+    "typescript",
+    "composition-api",
+    "server-side",
+    "ssr"
   ],
   "author": {
     "name": "AlphaFoxz",
