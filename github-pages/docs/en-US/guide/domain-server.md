@@ -1,31 +1,31 @@
-# domain-server 服务端领域模块
+# domain-server Module
 
-服务端领域模块，功能与 [domain 模块](./domain) 完全一致，专为 Node.js 环境设计和优化。
+Server-side domain module with functionality identical to the [domain module](./domain), designed specifically for Node.js environments.
 
-## 1 与 domain 模块的区别
+## 1 Differences from domain Module
 
-### 1.1 相同点
+### 1.1 Similarities
 
-- 完全相同的 API 和功能
-- 相同的事件系统（`createRequestEvent`、`createBroadcastEvent`）
-- 相同的聚合系统（`createSingletonAgg`、`createMultiInstanceAgg`）
-- 相同的插件系统（`createPluginHelperByAgg`、`createPluginHelperByAggCreator`）
-- 相同的绑定工具（`bindRef`、`bindReactive`）
+- Identical APIs and functionality
+- Same event system (`createRequestEvent`, `createBroadcastEvent`)
+- Same aggregation system (`createSingletonAgg`, `createMultiInstanceAgg`)
+- Same plugin system (`createPluginHelperByAgg`, `createPluginHelperByAggCreator`)
+- Same binding utilities (`bindRef`, `bindReactive`)
 
-### 1.2 不同点
+### 1.2 Differences
 
-- **环境**: `domain-server` 专为 Node.js 环境设计，不依赖 Vue 的组件渲染功能
-- **依赖**: 使用 `@vue/reactivity` 而非完整的 `vue` 包
-- **用途**: 适用于服务端应用、API 服务、CLI 工具等不需要视图渲染的场景
+- **Environment**: `domain-server` is designed for Node.js environments, without dependency on Vue's component rendering
+- **Dependencies**: Uses `@vue/reactivity` instead of the full `vue` package
+- **Use Cases**: Suitable for server applications, API services, CLI tools, and other scenarios without view rendering
 
-## 2 使用场景
+## 2 Use Cases
 
-### 2.1 Node.js API 服务
+### 2.1 Node.js API Service
 
 ```typescript
 import { createSingletonAgg, createBroadcastEvent } from 'vue-fn/domain-server'
 
-// 用户状态管理
+// User state management
 const userAgg = createSingletonAgg(() => {
   const users = ref<Map<string, UserData>>(new Map())
   const onUserChanged = createBroadcastEvent<{ userId: string }>()
@@ -42,14 +42,14 @@ const userAgg = createSingletonAgg(() => {
   }
 })
 
-// 在 API 路由中使用
+// Use in API routes
 app.post('/users/:id', (req, res) => {
   userAgg.api.actions.addUser(req.params.id, req.body)
   res.json({ success: true })
 })
 ```
 
-### 2.2 CLI 工具状态管理
+### 2.2 CLI Tool State Management
 
 ```typescript
 import { createSingletonAgg } from 'vue-fn/domain-server'
@@ -67,14 +67,14 @@ const cliState = createSingletonAgg(() => {
   }
 })
 
-// 在 CLI 命令中使用
+// Use in CLI commands
 cliState.api.actions.setConfig(loadConfig())
 if (cliState.api.states.isVerbose.value) {
   console.log('Verbose mode enabled')
 }
 ```
 
-### 2.3 后台任务处理
+### 2.3 Background Task Processing
 
 ```typescript
 import { createMultiInstanceAgg } from 'vue-fn/domain-server'
@@ -84,7 +84,7 @@ const taskWorker = createMultiInstanceAgg((ctx) => {
   const progress = ref(0)
 
   ctx.onScopeDispose(() => {
-    // 清理资源
+    // Cleanup resources
     if (isRunning.value) {
       cleanup()
     }
@@ -105,17 +105,17 @@ const taskWorker = createMultiInstanceAgg((ctx) => {
   }
 })
 
-// 启动任务
+// Start task
 await taskWorker.api.actions.start()
 ```
 
-### 2.4 微服务间通信
+### 2.4 Microservice Communication
 
 ```typescript
 import { createRequestEvent, createSingletonAgg } from 'vue-fn/domain-server'
 
 const serviceAgg = createSingletonAgg(() => {
-  // 创建请求事件，用于服务间调用
+  // Create request event for service-to-service calls
   const getDataRequest = createRequestEvent(
     { id: '' },
     (id: string) => {
@@ -132,26 +132,26 @@ const serviceAgg = createSingletonAgg(() => {
   }
 })
 
-// 在其他服务中请求数据
+// Request data from other services
 const data = await serviceAgg.api.events.getDataRequest.publishRequest({
   id: '123',
 })
 ```
 
-## 3 安装和使用
+## 3 Installation and Usage
 
-### 3.1 安装
+### 3.1 Installation
 
 ```bash
 npm install vue-fn
-# 或
+# or
 pnpm add vue-fn
 ```
 
-### 3.2 导入
+### 3.2 Import
 
 ```typescript
-// 服务端领域模块
+// Server-side domain module
 import {
   createRequestEvent,
   createBroadcastEvent,
@@ -163,15 +163,15 @@ import {
 } from 'vue-fn/domain-server'
 ```
 
-## 4 API 参考
+## 4 API Reference
 
-完整的 API 参考请参考 [domain 模块文档](./domain)，所有 API 在 `domain-server` 中都可用的。
+For complete API reference, see the [domain module documentation](./domain). All APIs available in `domain` are also available in `domain-server`.
 
-## 5 性能考虑
+## 5 Performance Considerations
 
-### 5.1 内存管理
+### 5.1 Memory Management
 
-使用 `createMultiInstanceAgg` 时，记得调用 `destroy()` 方法清理资源：
+When using `createMultiInstanceAgg`, remember to call the `destroy()` method to clean up resources:
 
 ```typescript
 const worker = createMultiInstanceAgg(/* ... */)
@@ -179,21 +179,21 @@ const worker = createMultiInstanceAgg(/* ... */)
 try {
   await worker.api.actions.process()
 } finally {
-  worker.api.destroy() // 清理资源
+  worker.api.destroy() // Clean up resources
 }
 ```
 
-### 5.2 响应式开销
+### 5.2 Reactivity Overhead
 
-在服务端使用响应式系统时，注意：
+When using the reactive system on the server, note:
 
-- 避免在热路径上创建大量响应式对象
-- 使用 `shallowRef` 和 `shallowReactive` 减少深度响应式的开销
-- 对于只读数据，考虑使用普通对象
+- Avoid creating large numbers of reactive objects in hot paths
+- Use `shallowRef` and `shallowReactive` to reduce deep reactivity overhead
+- For read-only data, consider using plain objects
 
 ```typescript
 const agg = createSingletonAgg(() => {
-  // 使用 shallowRef 避免深度响应式
+  // Use shallowRef to avoid deep reactivity
   const cache = shallowRef<Map<string, any>>(new Map())
 
   return {
@@ -202,25 +202,25 @@ const agg = createSingletonAgg(() => {
       update(key: string, value: any) {
         const newCache = new Map(cache.value)
         newCache.set(key, value)
-        cache.value = newCache // 替换整个引用
+        cache.value = newCache // Replace entire reference
       },
     },
   }
 })
 ```
 
-## 6 与客户端模块的对比
+## 6 Comparison with Client Module
 
-| 特性 | domain | domain-server |
+| Feature | domain | domain-server |
 | --- | --- | --- |
-| 环境 | 浏览器/Node.js | Node.js |
-| 依赖 | @vue/reactivity | @vue/reactivity |
-| 视图渲染 | 支持 | 不支持 |
-| 包大小 | 较大 | 较小 |
-| 使用场景 | 客户端应用 | 服务端应用、API、CLI |
+| Environment | Browser/Node.js | Node.js |
+| Dependencies | vue | @vue/reactivity |
+| View Rendering | Supported | Not supported |
+| Bundle Size | Larger | Smaller |
+| Use Cases | Client apps | Server apps, APIs, CLI |
 
-如果你的项目：
+If your project:
 
-- 只需要状态管理，不需要视图渲染 → 使用 `domain-server`
-- 需要在浏览器中使用 → 使用 `domain`
-- 是纯服务端项目（API、CLI） → 使用 `domain-server`
+- Only needs state management, no view rendering → Use `domain-server`
+- Needs to run in browser → Use `domain`
+- Is pure server project (API, CLI) → Use `domain-server`

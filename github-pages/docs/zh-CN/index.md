@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: 快速开始
-      link: /zh-CN/content/index
+      link: /zh-CN/guide/index
     - theme: alt
       text: GitHub
       link: https://github.com/AlphaFoxz/vue-fn
