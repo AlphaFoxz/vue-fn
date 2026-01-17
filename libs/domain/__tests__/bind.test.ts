@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { bindRef } from '../bind';
+import { bindRef, bindReactive } from '../bind';
 import { reactive, readonly, ref } from 'vue';
 
 function createAgg() {
@@ -313,4 +313,140 @@ it('bindRef multi page', async () => {
   await new Promise((resolve) => setTimeout(resolve));
   expect(mapRef.value.a).toBe(1);
   expect(mapRef2.value.a).toBe(1);
+});
+
+it('bindReactive', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    }
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    }
+  );
+  expect(mapRef).toEqual({ a: 1, b: '2' });
+  expect(mapReactive).toEqual({ a: 1, b: '2' });
+  mapRef.a = 2;
+  mapRef.b = '3';
+  mapReactive.a = 2;
+  mapReactive.b = '3';
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 2, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '3' });
+});
+
+it('bindReactive forceSync', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { forceSync: true }
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true }
+  );
+  agg.setMapRef({ a: 2, b: '3' });
+  agg.setMapReactive({ a: 2, b: '3' });
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef).toEqual({ a: 2, b: '3' });
+  expect(mapReactive).toEqual({ a: 2, b: '3' });
+  mapRef.a = 3;
+  mapReactive.a = 3;
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 3, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 3, b: '3' });
+});
+
+it('bindReactive multi page', async () => {
+  const agg = createAgg();
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true }
+  );
+  const mapReactive2 = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true }
+  );
+  await new Promise((resolve) => setTimeout(resolve));
+  mapReactive.a = 2;
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapReactive2).toEqual({ a: 2, b: '2' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '2' });
+  await new Promise((resolve) => setTimeout(resolve));
+  agg.setMapReactiveA(1);
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapReactive.a).toBe(1);
+  expect(mapReactive2.a).toBe(1);
+});
+
+it('bindReactive deep', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { deep: true }
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { deep: true }
+  );
+  expect(mapRef).toEqual({ a: 1, b: '2' });
+  expect(mapReactive).toEqual({ a: 1, b: '2' });
+  mapRef.a = 2;
+  mapRef.b = '3';
+  mapReactive.a = 2;
+  mapReactive.b = '3';
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 2, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '3' });
+});
+
+it('bindReactive deep forceSync', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { deep: true, forceSync: true }
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { deep: true, forceSync: true }
+  );
+  agg.setMapRef({ a: 2, b: '3' });
+  agg.setMapReactive({ a: 2, b: '3' });
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef).toEqual({ a: 2, b: '3' });
+  expect(mapReactive).toEqual({ a: 2, b: '3' });
+  agg.setMapRefA(3);
+  agg.setMapReactiveA(3);
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef.a).toBe(3);
+  expect(mapReactive.a).toBe(3);
 });

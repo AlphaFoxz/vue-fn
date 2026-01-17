@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { bindRef } from '../bind';
+import { bindRef, bindReactive } from '../bind';
 import { reactive, readonly, ref } from '@vue/reactivity';
 
 function createAgg() {
@@ -52,13 +52,13 @@ it('bindRef', async () => {
     () => agg.mapRef.value.a,
     (v) => {
       agg.setMapRefA(v);
-    }
+    },
   );
   const mapA2 = bindRef(
     () => agg.mapReactive.a,
     (v) => {
       agg.setMapReactiveA(v);
-    }
+    },
   );
   expect(name.value).toBe('');
   expect(age.value).toBe(0);
@@ -90,42 +90,42 @@ it('bindRef forceSync', async () => {
     (n) => {
       agg.setName(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const age = bindRef(
     agg.age,
     (n) => {
       agg.setAge(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const mapRef = bindRef(
     agg.mapRef,
     (n) => {
       agg.setMapRef(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const mapReactive = bindRef(
     agg.mapReactive,
     (n) => {
       agg.setMapReactive(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const mapA1 = bindRef(
     () => agg.mapRef.value.a,
     (v) => {
       agg.setMapRefA(v);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const mapA2 = bindRef(
     () => agg.mapReactive.a,
     (v) => {
       agg.setMapReactiveA(v);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   agg.setAge(18);
   agg.setName('Bob');
@@ -136,11 +136,15 @@ it('bindRef forceSync', async () => {
   expect(age.value).toBe(18);
   expect(mapRef.value).toEqual({ a: 2, b: '3' });
   expect(mapReactive.value).toEqual({ a: 2, b: '3' });
+  expect(mapA1.value).toBe(2);
+  expect(mapA2.value).toBe(2);
   agg.setMapRefA(3);
   agg.setMapReactiveA(3);
   await new Promise((resolve) => setTimeout(resolve));
   expect(mapRef.value).toEqual({ a: 3, b: '3' });
   expect(mapReactive.value).toEqual({ a: 3, b: '3' });
+  expect(mapA1.value).toBe(3);
+  expect(mapA2.value).toBe(3);
 });
 
 it('bindRef multi page', async () => {
@@ -150,14 +154,14 @@ it('bindRef multi page', async () => {
     (n) => {
       agg.setMapRef(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   const mapRef2 = bindRef(
     agg.mapRef,
     (n) => {
       agg.setMapRef(n);
     },
-    { forceSync: true }
+    { forceSync: true },
   );
   await new Promise((resolve) => setTimeout(resolve));
   mapRef.value = { a: 2, b: '3' };
@@ -178,28 +182,28 @@ it('bindRef deep', async () => {
     (n) => {
       agg.setName(n);
     },
-    { deep: true }
+    { deep: true },
   );
   const age = bindRef(
     agg.age,
     (n) => {
       agg.setAge(n);
     },
-    { deep: true }
+    { deep: true },
   );
   const mapRef = bindRef(
     agg.mapRef,
     (n) => {
       agg.setMapRef(n);
     },
-    { deep: true }
+    { deep: true },
   );
   const mapReactive = bindRef(
     agg.mapReactive,
     (n) => {
       agg.setMapReactive(n);
     },
-    { deep: true }
+    { deep: true },
   );
   expect(name.value).toBe('');
   expect(age.value).toBe(0);
@@ -228,42 +232,42 @@ it('bindRef deep forceSync', async () => {
     (n) => {
       agg.setName(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const age = bindRef(
     agg.age,
     (n) => {
       agg.setAge(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const mapRef = bindRef(
     agg.mapRef,
     (n) => {
       agg.setMapRef(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const mapReactive = bindRef(
     agg.mapReactive,
     (n) => {
       agg.setMapReactive(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const mapA1 = bindRef(
     () => agg.mapRef.value.a,
     () => {
       agg.setMapRefA(1);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const mapA2 = bindRef(
     () => agg.mapReactive.a,
     () => {
       agg.setMapReactiveA(1);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   agg.setAge(18);
   agg.setName('Bob');
@@ -290,14 +294,14 @@ it('bindRef multi page', async () => {
     (n) => {
       agg.setMapRef(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   const mapRef2 = bindRef(
     agg.mapRef,
     (n) => {
       agg.setMapRef(n);
     },
-    { deep: true, forceSync: true }
+    { deep: true, forceSync: true },
   );
   await new Promise((resolve) => setTimeout(resolve));
   mapRef.value.a = 2;
@@ -309,4 +313,134 @@ it('bindRef multi page', async () => {
   await new Promise((resolve) => setTimeout(resolve));
   expect(mapRef.value.a).toBe(1);
   expect(mapRef2.value.a).toBe(1);
+});
+
+it('bindReactive', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(agg.mapRef, (n) => {
+    agg.setMapRef(n);
+  });
+  const mapReactive = bindReactive(agg.mapReactive, (n) => {
+    agg.setMapReactive(n);
+  });
+  expect(mapRef).toEqual({ a: 1, b: '2' });
+  expect(mapReactive).toEqual({ a: 1, b: '2' });
+  mapRef.a = 2;
+  mapRef.b = '3';
+  mapReactive.a = 2;
+  mapReactive.b = '3';
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 2, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '3' });
+});
+
+it('bindReactive forceSync', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { forceSync: true },
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true },
+  );
+  agg.setMapRef({ a: 2, b: '3' });
+  agg.setMapReactive({ a: 2, b: '3' });
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef).toEqual({ a: 2, b: '3' });
+  expect(mapReactive).toEqual({ a: 2, b: '3' });
+  mapRef.a = 3;
+  mapReactive.a = 3;
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 3, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 3, b: '3' });
+});
+
+it('bindReactive multi page', async () => {
+  const agg = createAgg();
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true },
+  );
+  const mapReactive2 = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { forceSync: true },
+  );
+  await new Promise((resolve) => setTimeout(resolve));
+  mapReactive.a = 2;
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapReactive2).toEqual({ a: 2, b: '2' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '2' });
+  await new Promise((resolve) => setTimeout(resolve));
+  agg.setMapReactiveA(1);
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapReactive.a).toBe(1);
+  expect(mapReactive2.a).toBe(1);
+});
+
+it('bindReactive deep', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { deep: true },
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { deep: true },
+  );
+  expect(mapRef).toEqual({ a: 1, b: '2' });
+  expect(mapReactive).toEqual({ a: 1, b: '2' });
+  mapRef.a = 2;
+  mapRef.b = '3';
+  mapReactive.a = 2;
+  mapReactive.b = '3';
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(agg.mapRef.value).toEqual({ a: 2, b: '3' });
+  expect(agg.mapReactive).toEqual({ a: 2, b: '3' });
+});
+
+it('bindReactive deep forceSync', async () => {
+  const agg = createAgg();
+  const mapRef = bindReactive(
+    agg.mapRef,
+    (n) => {
+      agg.setMapRef(n);
+    },
+    { deep: true, forceSync: true },
+  );
+  const mapReactive = bindReactive(
+    agg.mapReactive,
+    (n) => {
+      agg.setMapReactive(n);
+    },
+    { deep: true, forceSync: true },
+  );
+  agg.setMapRef({ a: 2, b: '3' });
+  agg.setMapReactive({ a: 2, b: '3' });
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef).toEqual({ a: 2, b: '3' });
+  expect(mapReactive).toEqual({ a: 2, b: '3' });
+  agg.setMapRefA(3);
+  agg.setMapReactiveA(3);
+  await new Promise((resolve) => setTimeout(resolve));
+  expect(mapRef.a).toBe(3);
+  expect(mapReactive.a).toBe(3);
 });
