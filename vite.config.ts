@@ -5,11 +5,8 @@ import { defineConfig } from 'vite';
 const modules = fs.readdirSync(path.join(__dirname, 'libs'));
 
 export default defineConfig({
-  esbuild: {
-    drop: ['console', 'debugger'], // 移除 console 和 debugger 语句
-  },
   build: {
-    minify: 'esbuild',
+    minify: 'oxc',
     target: 'esnext',
     outDir: 'dist',
     sourcemap: true,
@@ -21,6 +18,11 @@ export default defineConfig({
         dir: 'dist',
         format: 'esm',
         entryFileNames: '[name]/index.mjs',
+        minify: {
+          compress: { dropConsole: true, dropDebugger: true },
+          mangle: true,
+          codegen: false,
+        },
       },
     },
     lib: {

@@ -9,7 +9,7 @@ export type TimeoutApi = {
 
 export function createTimeout(
   timeoutMs: number,
-  onTimeout: Error | (() => void) = new Error('timeout!')
+  onTimeout: Error | (() => void) = new Error('timeout!'),
 ): TimeoutApi {
   let timeout: undefined | null | ReturnType<typeof setTimeout> = undefined;
   const isTimeout = shallowRef(false);

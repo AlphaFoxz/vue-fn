@@ -66,7 +66,7 @@ Both provide `api` object with `states`, `commands`, and `events` properties, pl
 
 ## TypeScript Configuration
 
-- Root `tsconfig.json`: Extends `@tsconfig/node22`, includes dist/libs, strict mode enabled
+- Root `tsconfig.json`: Extends `@tsconfig/node24`, includes dist/libs, strict mode enabled
 - `tsconfig.build.json`: For building, excludes `__test__` directories, emits declarations to `dist/`
 - `verbatimModuleSyntax` is enabled - requires explicit type-only imports with `import type`
 
