@@ -56,31 +56,26 @@ describe('shared-domain', () => {
       });
 
       await agg2.untilInitialized();
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // 状态应该同步
-      expect(agg2.api.states.name.value).toBe('Init');
+      // 状态应该同步（跨标签消息投递耗时不确定，用轮询等待）
+      await expect.poll(() => agg2.api.states.name.value).toBe('Init');
 
       // 通过 agg1 执行命令
       agg1.api.commands.increment(5);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
       expect(agg1.api.states.count.value).toBe(5);
-      expect(agg2.api.states.count.value).toBe(5);
+      await expect.poll(() => agg2.api.states.count.value).toBe(5);
 
       // 通过 agg2 执行命令
       agg2.api.commands.setName('Andy');
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(agg1.api.states.name.value).toBe('Andy');
       expect(agg2.api.states.name.value).toBe('Andy');
+      await expect.poll(() => agg1.api.states.name.value).toBe('Andy');
 
       // 通过命令再次修改，验证双向同步
       agg1.api.commands.increment(95);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
       expect(agg1.api.states.count.value).toBe(100);
-      expect(agg2.api.states.count.value).toBe(100);
+      await expect.poll(() => agg2.api.states.count.value).toBe(100);
     });
 
     it('should support async commands', async () => {
